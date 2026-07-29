@@ -81,9 +81,18 @@ header.app{
   display:flex;align-items:center;justify-content:space-between;
   max-width:760px;margin:0 auto;
 }
-.wordmark{display:flex;flex-direction:column;gap:2px}
-.wordmark .wm-top{font-size:22px;font-weight:800;letter-spacing:-.02em}
-.wordmark .wm-sub{font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.wordmark{display:flex;flex-direction:column;gap:2px;min-width:0}
+.wordmark .wm-top{font-size:22px;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+.wordmark .wm-sub{font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--muted);font-weight:500;white-space:nowrap}
+.head-btns{display:flex;gap:8px;flex:0 0 auto}
+/* three round buttons + the wordmark stop fitting under ~360px */
+@media(max-width:359px){
+  .wordmark .wm-top{font-size:17px}
+  .wordmark .wm-sub{font-size:8.5px;letter-spacing:.12em}
+  .head-btns{gap:6px}
+  .theme-btn{width:38px;height:38px;font-size:15px}
+  header.app{padding-left:16px;padding-right:16px}
+}
 .theme-btn{
   width:42px;height:42px;border-radius:50%;
   border:1px solid var(--line-strong);
@@ -384,10 +393,15 @@ nav.tabbar{
   nav.tabbar{background:var(--glass-solid)}
 }
 .tab{
-  flex:1;height:100%;border-radius:999px;
+  flex:1;height:100%;border-radius:999px;min-width:0;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-  color:var(--muted);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;
+  color:var(--muted);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;
   transition:color .25s, background .3s cubic-bezier(.22,1,.36,1);position:relative;
+}
+/* five tabs — keep the labels readable on the narrowest phones */
+@media(max-width:359px){
+  .tab{font-size:7.5px;letter-spacing:.04em}
+  .tab .t-glyph{font-size:16px}
 }
 .tab .t-glyph{font-size:17px;line-height:1;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
 .tab.on{color:var(--ink);background:var(--glass-active)}
@@ -446,18 +460,18 @@ nav.tabbar{
 .view.active{animation:floatUp .42s cubic-bezier(.22,1,.36,1)}
 .acct-card{border:1px solid var(--line);border-radius:16px;padding:16px 17px;margin-bottom:11px;cursor:pointer;transition:border-color .2s,transform .12s;position:relative;overflow:hidden}
 .acct-card:active{transform:scale(.99)}
-.acct-card.all{border-color:var(--line-strong);background:var(--panel)}
+.acct-card.all{border-color:var(--line-strong);background:var(--card-2)}
 .acct-card .ac-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.acct-card .ac-name{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;letter-spacing:.01em}
+.acct-card .ac-name{font-family:'Archivo',sans-serif;font-size:16px;font-weight:700;letter-spacing:.01em}
 .acct-card .ac-net{font-size:16px;font-weight:700}
 .acct-card .ac-net.mono{font-variant-numeric:tabular-nums}
 .acct-card .ac-sub{display:flex;gap:14px;margin-top:9px}
 .acct-card .ac-stat{font-size:11px;color:var(--muted);letter-spacing:.03em}
 .acct-card .ac-stat b{display:block;color:var(--ink);font-size:13.5px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
 .acct-card .ac-arrow{position:absolute;right:15px;bottom:14px;color:var(--muted);font-size:15px}
-.acct-hero{border:1px solid var(--line-strong);border-radius:18px;padding:20px;margin-bottom:14px;background:var(--panel)}
+.acct-hero{border:1px solid var(--line-strong);border-radius:18px;padding:20px;margin-bottom:14px;background:var(--card-2)}
 .acct-hero .ah-label{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700}
-.acct-hero .ah-net{font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
+.acct-hero .ah-net{font-family:'Archivo',sans-serif;font-size:34px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
 .acct-hero .ah-figs{display:flex;gap:22px;margin-top:14px}
 .acct-hero .ah-fig .ahf-k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .acct-hero .ah-fig .ahf-v{font-size:16px;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums}
@@ -466,9 +480,9 @@ nav.tabbar{
 .recur-row .rr-name{font-size:14px;font-weight:600}
 .recur-row .rr-sub{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:.02em}
 .recur-row .rr-amt{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
-.due-card{border:1px solid var(--line-strong);border-radius:16px;padding:20px;text-align:center;margin-bottom:4px;background:var(--panel)}
-.due-card .dc-name{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700}
-.due-card .dc-amt{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;margin:8px 0 4px;font-variant-numeric:tabular-nums}
+.due-card{border:1px solid var(--line-strong);border-radius:16px;padding:20px;text-align:center;margin-bottom:4px;background:var(--card-2)}
+.due-card .dc-name{font-family:'Archivo',sans-serif;font-size:20px;font-weight:700}
+.due-card .dc-amt{font-family:'Archivo',sans-serif;font-size:32px;font-weight:700;margin:8px 0 4px;font-variant-numeric:tabular-nums}
 .due-card .dc-when{font-size:12px;color:var(--muted);letter-spacing:.03em}
 .due-card .dc-tags{font-size:11px;color:var(--muted);margin-top:10px;letter-spacing:.03em}
 .whatsnew{position:fixed;inset:0;z-index:920;background:rgba(0,0,0,.45);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:26px;animation:wnFade .3s ease}
@@ -477,7 +491,7 @@ nav.tabbar{
 .wn-card{background:var(--bg);border:1px solid var(--line-strong);border-radius:20px;padding:24px 22px;max-width:340px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,.35);animation:wnPop .42s cubic-bezier(.22,1.2,.4,1)}
 @keyframes wnPop{from{transform:translateY(16px) scale(.96);opacity:0}to{transform:none;opacity:1}}
 .wn-card .wn-kicker{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);font-weight:700}
-.wn-card .wn-ver{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;margin-top:6px;letter-spacing:-.01em}
+.wn-card .wn-ver{font-family:'Archivo',sans-serif;font-size:22px;font-weight:700;margin-top:6px;letter-spacing:-.01em}
 .wn-card .wn-list{list-style:none;margin:16px 0 20px;padding:0;display:flex;flex-direction:column;gap:11px}
 .wn-card .wn-list li{position:relative;padding-left:20px;font-size:13.5px;line-height:1.5;color:var(--ink)}
 .wn-card .wn-list li::before{content:'';position:absolute;left:2px;top:8px;width:6px;height:6px;border-radius:50%;background:var(--thumb)}
@@ -487,14 +501,14 @@ nav.tabbar{
 .pinlock.on{display:flex}
 .pg-card{text-align:center;max-width:300px;width:100%}
 .pg-mark{font-size:44px;color:var(--pos);margin-bottom:10px}
-.pg-title{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:.02em}
+.pg-title{font-family:'Archivo',sans-serif;font-size:22px;font-weight:700;letter-spacing:.02em}
 .pg-sub{font-size:12px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase;margin-top:6px}
 .pg-err{color:var(--neg);font-size:12px;margin-top:10px;min-height:16px}
 .snap-row,.hidden-row,.mng-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:13px;margin-bottom:9px}
 .snap-row .sr-main,.hidden-row .hr-main,.mng-row .mr-main{flex:1;min-width:0}
 .snap-row .sr-t,.hidden-row .hr-t,.mng-row .mr-t{font-size:13.5px;font-weight:600}
 .snap-row .sr-s,.hidden-row .hr-s,.mng-row .mr-s{font-size:11px;color:var(--muted);margin-top:2px}
-.mini-btn{padding:8px 13px;border-radius:9px;border:1px solid var(--line-2);font-size:11px;font-weight:600;letter-spacing:.04em;flex:0 0 auto}
+.mini-btn{padding:8px 13px;border-radius:9px;border:1px solid var(--line-strong);font-size:11px;font-weight:600;letter-spacing:.04em;flex:0 0 auto}
 .mini-btn.danger{border-color:var(--neg);color:var(--neg)}
 .mng-group-title{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:16px 2px 8px}
 @media (prefers-reduced-motion:reduce){
@@ -527,7 +541,7 @@ nav.tabbar{
     g.fillRect(cx,cy+ch*0.36,cw,ch*0.14);
     // S monogram
     g.fillStyle=bg;
-    g.font='700 '+Math.round(ch*0.42)+'px Space Grotesk, sans-serif';
+    g.font='800 '+Math.round(ch*0.42)+'px Archivo, sans-serif';
     g.textAlign='center';g.textBaseline='middle';
     g.fillText('S',cx+cw*0.5,cy+ch*0.74);
     return c.toDataURL('image/png');
@@ -559,6 +573,145 @@ nav.tabbar{
 .nd-s{font-size:11.5px; color:var(--muted); line-height:1.4}
 .entry .nd-tag{font-size:9px; letter-spacing:.06em; text-transform:uppercase; font-weight:800;
   color:var(--muted); border:1px solid var(--line); border-radius:5px; padding:1px 5px; margin-left:6px; vertical-align:1px}
+
+/* ---------- receipt scan (add sheet) ---------- */
+.rcpt{margin:-6px 0 16px; padding:13px 14px; border-radius:14px; border:1.5px dashed var(--line-strong)}
+.rcpt-head{display:flex; align-items:center; gap:11px}
+.rcpt-head .rc-ico{flex:0 0 auto; width:28px; height:28px; border-radius:9px;
+  border:1px solid var(--line-strong); display:flex; align-items:center; justify-content:center; font-size:14px}
+.rcpt-head .rc-t{font-size:12.5px; font-weight:700; letter-spacing:.02em}
+.rcpt-head .rc-s{font-size:11px; color:var(--muted); margin-top:2px; line-height:1.4}
+.rcpt-actions{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:12px}
+.rcpt-act{display:flex; align-items:center; justify-content:center; gap:7px;
+  min-height:46px; padding:11px 8px; border-radius:11px;
+  border:1.5px solid var(--line-strong); background:var(--card);
+  font-size:12px; font-weight:800; letter-spacing:.05em;
+  transition:transform .12s, border-color .2s}
+.rcpt-act:active{transform:scale(.96)}
+.rcpt-act .ra-g{font-size:15px; line-height:1; color:var(--muted)}
+.rcpt.busy .rcpt-actions{pointer-events:none; opacity:.5}
+.rcpt-bar{height:3px; border-radius:2px; background:var(--line); margin-top:10px; overflow:hidden; display:none}
+.rcpt.busy .rcpt-bar{display:block}
+.rcpt-bar>i{display:block; height:100%; width:0; background:var(--neg); transition:width .35s ease}
+.rcpt-msg{font-size:11.5px; color:var(--muted); margin-top:8px; line-height:1.5; display:none}
+.rcpt-msg.on{display:block}
+.rcpt-msg.bad{color:var(--neg)}
+
+/* ---------- thumb-friendly tap targets ----------
+   these all sat at 31–34px; ~40px is the smallest comfortable touch size */
+.sheet-close{width:40px; height:40px; font-size:21px}
+.linklike{min-height:40px; display:inline-flex; align-items:center; padding:0 2px}
+.mini-btn{min-height:38px; padding:9px 14px}
+.search-bar .sb-clear{width:38px; height:38px}
+.search-bar .sb-done{min-height:40px; display:inline-flex; align-items:center}
+.set-back{min-height:40px}
+
+/* ---------- layered settings ---------- */
+.set-row{min-height:56px}                              /* comfortable thumb target */
+.set-group{padding:12px 14px}                          /* all six fit one screen */
+.set-group>div{display:flex; align-items:center; gap:10px; flex-wrap:wrap; min-width:0}
+.set-group .sg-ico{flex:0 0 auto; width:28px; height:28px; border-radius:9px;
+  border:1px solid var(--line-strong); color:var(--muted);
+  display:flex; align-items:center; justify-content:center; font-size:13px}
+.set-group small{flex:1 0 100%; padding-left:38px; margin-top:1px; line-height:1.35}
+.set-page{display:none}
+.set-page.on{display:block; animation:floatUp .34s cubic-bezier(.22,1,.36,1)}
+.set-back{margin:2px 2px 4px; padding:8px 2px; font-size:13px}
+
+/* ---------- search (sheet from the top) ---------- */
+.sheet.sheet-top{
+  top:0; bottom:auto;
+  border-top:none; border-bottom:1px solid var(--line-strong);
+  border-radius:0 0 24px 24px;
+  transform:translateY(-105%);
+  max-height:calc(100dvh - 24px);
+}
+.sheet.sheet-top.open{transform:none}
+@media(min-width:700px){
+  .sheet.sheet-top{transform:translate(-50%,-105%)}
+  .sheet.sheet-top.open{transform:translate(-50%,0)}
+}
+.sheet.sheet-top .sheet-body{padding:calc(12px + env(safe-area-inset-top)) 18px 18px}
+.search-bar{display:flex; align-items:center; gap:9px; position:sticky; top:0;
+  background:var(--bg); padding-bottom:12px; z-index:2}
+.search-bar .sb-ico{flex:0 0 auto; font-size:19px; color:var(--muted); line-height:1}
+.search-input{flex:1; min-width:0; padding:13px 14px; border-radius:13px;
+  background:var(--card); border:1.5px solid var(--line-strong);
+  font-size:16px; outline:none; transition:border-color .25s}   /* 16px keeps iOS from zooming */
+.search-input:focus{border-color:var(--neg)}
+.search-bar .sb-clear{flex:0 0 auto; width:34px; height:34px; border-radius:50%;
+  border:1px solid var(--line-strong); color:var(--muted); font-size:17px; line-height:1;
+  display:none; align-items:center; justify-content:center}
+.search-bar .sb-clear.on{display:flex}
+.search-bar .sb-done{flex:0 0 auto; padding:10px 4px 10px 6px; font-size:12px; font-weight:800;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--neg)}
+.search-meta{font-size:10px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--muted); font-weight:800; margin:0 2px 10px}
+.search-hint{text-align:center; color:var(--muted); font-size:12.5px; line-height:1.6; padding:22px 10px 26px}
+.search-hint .sh-mark{font-size:30px; color:var(--line-strong); display:block; margin-bottom:10px}
+
+/* ---------- pay / people ---------- */
+.acct-card .ac-upi{font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:11.5px;
+  color:var(--muted); margin-top:6px; word-break:break-all}
+.acct-card.person .ac-sub{padding-right:70px}
+.acct-card .ac-edit{position:absolute; right:13px; bottom:12px; padding:7px 12px; border-radius:9px;
+  border:1px solid var(--line-strong); font-size:10.5px; font-weight:800; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--muted)}
+.acct-card .ac-edit:active{color:var(--ink)}
+.pay-note{font-size:11.5px; color:var(--muted); line-height:1.6; border:1px solid var(--line);
+  border-radius:12px; padding:12px 14px; margin-top:16px}
+.pay-target{text-align:center; margin:-6px 0 18px}
+.pay-target .pt-name{font-size:19px; font-weight:800; letter-spacing:-.01em}
+.pay-target .pt-upi{font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:12px;
+  color:var(--muted); margin-top:4px; word-break:break-all}
+
+/* ---------- rewind ---------- */
+.rewind{position:fixed; inset:0; z-index:930; background:rgba(0,0,0,.55);
+  backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);
+  display:none; align-items:center; justify-content:center; animation:wnFade .3s ease}
+.rewind.on{display:flex}
+.rw-card{position:relative; background:var(--bg); width:100%; max-width:440px;
+  height:100dvh; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  padding:calc(28px + env(safe-area-inset-top)) 24px calc(26px + env(safe-area-inset-bottom));
+  animation:rwPop .5s cubic-bezier(.22,1.1,.36,1)}
+@media(min-width:520px){
+  .rw-card{height:auto; max-height:calc(100dvh - 56px); border-radius:26px;
+    border:1px solid var(--line-strong); box-shadow:0 40px 100px rgba(0,0,0,.45); padding:32px 28px}
+}
+@keyframes rwPop{from{transform:translateY(30px) scale(.97);opacity:0}to{transform:none;opacity:1}}
+.rw-card>*{animation:floatUp .55s cubic-bezier(.22,1,.36,1) backwards}
+.rw-kicker{font-size:10px; letter-spacing:.28em; text-transform:uppercase; color:var(--neg); font-weight:800}
+.rw-period{font-size:clamp(30px,9vw,40px); font-weight:800; letter-spacing:-.035em; line-height:1.02; margin-top:8px}
+.rw-sub{font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.5}
+.rw-hero{margin-top:20px; border-radius:20px; overflow:hidden; border:1px solid var(--line);
+  box-shadow:var(--shadow); padding:20px 20px 18px; position:relative;
+  background:repeating-linear-gradient(0deg, transparent 0 26px, var(--rule) 26px 27px),
+    linear-gradient(160deg, var(--card) 0%, var(--card-2) 100%)}
+.rw-hero::after{content:''; position:absolute; top:0; left:20px; bottom:0; width:1px; background:var(--neg-soft)}
+.rw-hero .rwh-k{font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:var(--muted); font-weight:800}
+.rw-hero .rwh-v{font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums;
+  font-size:clamp(34px,10vw,44px); font-weight:600; letter-spacing:-.02em; margin-top:6px; line-height:1.1}
+.rw-hero .rwh-row{display:flex; gap:12px; margin-top:16px}
+.rw-hero .rwh-cell{flex:1; padding:10px 13px; border-radius:12px; background:var(--card); border:1px solid var(--line)}
+.rw-hero .rwh-ck{font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); font-weight:700}
+.rw-hero .rwh-cv{font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums;
+  font-size:15px; font-weight:600; margin-top:4px}
+.rw-sec{font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted);
+  font-weight:800; margin:22px 2px 11px}
+.rw-cat{margin-bottom:13px}
+.rw-cat .rwc-top{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+.rw-cat .rwc-rank{font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:11px;
+  color:var(--muted); margin-right:8px}
+.rw-cat .rwc-name{font-size:14px; font-weight:700}
+.rw-cat .rwc-amt{font-family:'IBM Plex Mono',ui-monospace,monospace; font-variant-numeric:tabular-nums;
+  font-size:13.5px; font-weight:600; flex:0 0 auto}
+.rw-cat .rwc-bar{height:6px; border-radius:3px; background:var(--line); margin-top:7px; overflow:hidden}
+.rw-cat .rwc-bar>i{display:block; height:100%; width:0; border-radius:3px; background:var(--neg);
+  transition:width .8s cubic-bezier(.22,1,.36,1)}
+.rw-cat .rwc-sub{font-size:11px; color:var(--muted); margin-top:5px}
+.rw-hi{border:1px solid var(--line); border-left:3px solid var(--neg); border-radius:12px;
+  padding:14px 16px; margin-bottom:10px; font-size:13.5px; line-height:1.55}
+.rw-hi b{font-weight:700}
 </style>
 </head>
 <body>
@@ -568,7 +721,8 @@ nav.tabbar{
     <div class="wm-top">Saksham Wallet</div>
     <div class="wm-sub">Cash · UPI · Cards</div>
   </div>
-  <div style="display:flex;gap:8px">
+  <div class="head-btns">
+    <button class="theme-btn" id="btnSearch" aria-label="Search entries">⌕</button>
     <button class="theme-btn" id="btnPrivacy" aria-label="Hide balance">◉</button>
     <button class="theme-btn" id="btnTheme" aria-label="Toggle theme">◐</button>
   </div>
@@ -619,56 +773,154 @@ nav.tabbar{
     </div>
   </section>
 
-  <!-- ============ MORE ============ -->
-  <section class="view" id="view-more">
-    <div class="section-head"><div class="section-title">Data</div></div>
-    <div class="settings-list">
-      <div class="set-row" id="btnDemo">
-        <div>Load demo data<small>Fills the wallet with a worked example — accounts, cards, whose-money, a hidden entry — so you can see every feature. Erase it anytime.</small></div>
-        <span class="arrow">→</span>
+  <!-- ============ PAY ============ -->
+  <section class="view" id="view-pay">
+    <div class="section-head"><div class="section-title">People</div><button class="linklike" id="btnAddPerson">+ Add person</button></div>
+    <div id="payCards"></div>
+    <div class="pay-note">Saksham Wallet never moves money and never holds a UPI PIN, card or bank detail. Tapping Pay records the entry here, then hands the amount to your own UPI app — you approve it there, exactly like paying on Zomato or Swiggy.</div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section class="view" id="view-settings">
+
+    <!-- level 1: the menu -->
+    <div id="setRoot">
+      <div class="section-head"><div class="section-title">Settings</div></div>
+      <div class="settings-list">
+        <div class="set-row set-group" data-page="money">
+          <div><span class="sg-ico">₹</span>Money &amp; bills<small>Opening cash, recurring payments</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row set-group" data-page="tags">
+          <div><span class="sg-ico">◱</span>Accounts &amp; tags<small>Accounts, sources, categories, people you pay</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row set-group" data-page="rewind">
+          <div><span class="sg-ico">◷</span>Rewind<small>How often you get a wrap-up</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row set-group" data-page="privacy">
+          <div><span class="sg-ico">◉</span>Privacy &amp; lock<small>PIN, hide amounts, hidden entries</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row set-group" data-page="export">
+          <div><span class="sg-ico">↧</span>Export &amp; backup<small>Excel, backup file, restore</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row set-group" data-page="device">
+          <div><span class="sg-ico">◈</span>This device<small>Snapshots, demo data, erase, version</small></div>
+          <span class="arrow">→</span>
+        </div>
       </div>
-      <div class="set-row" id="btnOpening">
-        <div>Set opening cash<small>Count the cash in your pocket right now and enter it once — everything builds on this.</small></div>
-        <span class="arrow">→</span>
-      </div>
-      <div class="set-row" id="btnExcel">
-        <div>Export to Excel<small>Pick a date range, then download that period as a proper .xlsx file.</small></div>
-        <span class="arrow">→</span>
-      </div>
-      <div class="set-row" id="btnExport">
-        <div>Backup<small>Download everything as one file you can restore from.</small></div>
-        <span class="arrow">→</span>
-      </div>
-      <div class="set-row" id="btnImport">
-        <div>Restore backup<small>Import a previously downloaded backup file.</small></div>
-        <span class="arrow">→</span>
-      </div>
-      <div class="set-row" id="btnHidden">
-        <div>Hidden entries<small>See and restore anything you've hidden.</small></div>
-        <span class="arrow">→</span>
-      </div>
-      <div class="set-row" id="btnSnaps">
-        <div>Restore a snapshot<small>The app auto-saves past versions on this device. Roll back if something went missing.</small></div>
-        <span class="arrow">→</span>
-      </div>
-      <div class="set-row" id="btnAccounts">
-        <div>Manage accounts<small>Rename or remove your accounts, sources and categories.</small></div>
-        <span class="arrow">→</span>
-      </div>
-      <div class="set-row" id="btnRecurring">
-        <div>Recurring payments<small>Subscriptions and regular bills. The wallet asks to log each one when it's due.</small></div>
-        <span class="arrow">→</span>
-      </div>
-      <div class="set-row" id="btnLock">
-        <div>App lock<small>Set a PIN that's asked every time the wallet opens.</small></div>
-        <span class="arrow">→</span>
-      </div>
-      <div class="set-row" id="btnWipe">
-        <div>Erase everything<small>Removes all entries on this device. Backup first.</small></div>
-        <span class="arrow bad">×</span>
+      <div class="hint" style="margin-top:18px;text-align:center">Everything lives on this device only — no cloud, no account. Keep a backup now and then.</div>
+    </div>
+
+    <!-- level 2: the pages -->
+    <div class="set-page" id="setpage-money">
+      <button class="linklike set-back">← Settings</button>
+      <div class="section-head"><div class="section-title">Money &amp; bills</div></div>
+      <div class="settings-list">
+        <div class="set-row" id="btnOpening">
+          <div>Set opening cash<small>Count the cash in your pocket right now and enter it once — everything builds on this.</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row" id="btnRecurring">
+          <div>Recurring payments<small>Subscriptions and regular bills. The wallet asks to log each one when it's due.</small></div>
+          <span class="arrow">→</span>
+        </div>
       </div>
     </div>
-    <div class="hint" style="margin-top:18px;text-align:center">Everything lives on this device only — no cloud, no account. Keep a backup now and then.</div>
+
+    <div class="set-page" id="setpage-tags">
+      <button class="linklike set-back">← Settings</button>
+      <div class="section-head"><div class="section-title">Accounts &amp; tags</div></div>
+      <div class="settings-list">
+        <div class="set-row" id="btnAccounts">
+          <div>Accounts, sources &amp; categories<small>Rename or remove the tags you've created while recording.</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row" id="btnPeopleJump">
+          <div>People you pay<small>Names and UPI IDs for the Pay tab.</small></div>
+          <span class="arrow">→</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-page" id="setpage-rewind">
+      <button class="linklike set-back">← Settings</button>
+      <div class="section-head"><div class="section-title">Rewind</div></div>
+      <div class="settings-list">
+        <div class="set-row" id="btnRewindFreq">
+          <div>Rewind frequency<small id="rewindFreqSub">Monthly — a wrap-up of the month gone by, shown once when you open the wallet.</small></div>
+          <span class="arrow" id="rewindFreqVal">Monthly</span>
+        </div>
+        <div class="set-row" id="btnRewindShow">
+          <div>Show my last Rewind<small>Open the most recent wrap-up again, any time you like.</small></div>
+          <span class="arrow">→</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-page" id="setpage-privacy">
+      <button class="linklike set-back">← Settings</button>
+      <div class="section-head"><div class="section-title">Privacy &amp; lock</div></div>
+      <div class="settings-list">
+        <div class="set-row" id="btnLock">
+          <div>App lock<small>Set a PIN that's asked every time the wallet opens.</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row" id="btnPrivacyRow">
+          <div>Hide amounts<small>Blurs every figure on screen. The same toggle as the ◉ button in the header.</small></div>
+          <span class="arrow" id="privacyRowVal">Off</span>
+        </div>
+        <div class="set-row" id="btnHidden">
+          <div>Hidden entries<small>See and restore anything you've hidden from the ledger and totals.</small></div>
+          <span class="arrow">→</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-page" id="setpage-export">
+      <button class="linklike set-back">← Settings</button>
+      <div class="section-head"><div class="section-title">Export &amp; backup</div></div>
+      <div class="settings-list">
+        <div class="set-row" id="btnExcel">
+          <div>Export to Excel<small>Pick a date range, then download that period as a proper .xlsx file.</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row" id="btnExport">
+          <div>Backup<small>Download everything as one file you can restore from.</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row" id="btnImport">
+          <div>Restore backup<small>Import a previously downloaded backup file.</small></div>
+          <span class="arrow">→</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="set-page" id="setpage-device">
+      <button class="linklike set-back">← Settings</button>
+      <div class="section-head"><div class="section-title">This device</div></div>
+      <div class="settings-list">
+        <div class="set-row" id="btnSnaps">
+          <div>Restore a snapshot<small>The app auto-saves past versions on this device. Roll back if something went missing.</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row" id="btnDemo">
+          <div>Load demo data<small>Fills the wallet with a worked example — accounts, cards, whose-money, a hidden entry — so you can see every feature. Erase it anytime.</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row" id="btnAbout">
+          <div>What's new<small id="aboutSub">Version 2.7</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row" id="btnWipe">
+          <div>Erase everything<small>Removes all entries on this device. Backup first.</small></div>
+          <span class="arrow bad">×</span>
+        </div>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -678,7 +930,8 @@ nav.tabbar{
   <button class="tab on" data-view="home"><span class="t-glyph">⌂</span>Home</button>
   <button class="tab" data-view="ledger"><span class="t-glyph">≣</span>Ledger</button>
   <button class="tab" data-view="accounts"><span class="t-glyph">◱</span>Accounts</button>
-  <button class="tab" data-view="more"><span class="t-glyph">◈</span>More</button>
+  <button class="tab" data-view="pay"><span class="t-glyph">⇥</span>Pay</button>
+  <button class="tab" data-view="settings"><span class="t-glyph">◈</span>Settings</button>
 </nav>
 
 <!-- ============ ADD / EDIT SHEET ============ -->
@@ -702,6 +955,22 @@ nav.tabbar{
         <span class="cur">₹</span>
         <input class="amount-input" id="fAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
       </div>
+    </div>
+
+    <div class="rcpt" id="rcptBox">
+      <div class="rcpt-head">
+        <span class="rc-ico">◲</span>
+        <span>
+          <span class="rc-t" id="rcptTitle">Scan a receipt</span>
+          <span class="rc-s" id="rcptCaption">The amount, date and shop get read off the bill for you to check.</span>
+        </span>
+      </div>
+      <div class="rcpt-actions">
+        <button type="button" class="rcpt-act" id="btnRcptCamera"><span class="ra-g">◎</span>Take photo</button>
+        <button type="button" class="rcpt-act" id="btnRcptFile"><span class="ra-g">▤</span>Choose photo</button>
+      </div>
+      <div class="rcpt-bar"><i id="rcptBar"></i></div>
+      <div class="rcpt-msg" id="rcptMsg"></div>
     </div>
 
     <div class="field">
@@ -896,6 +1165,57 @@ nav.tabbar{
   </div>
 </div>
 
+<div class="scrim" id="scrimSearch"></div>
+<div class="sheet sheet-top" id="sheetSearch">
+  <div class="sheet-body">
+    <div class="search-bar">
+      <span class="sb-ico">⌕</span>
+      <input class="search-input" id="qInput" placeholder="Item, category, account, person…"
+             autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search">
+      <button class="sb-clear" id="qClear" aria-label="Clear search">×</button>
+      <button class="sb-done" id="qDone">Done</button>
+    </div>
+    <div class="search-meta" id="qMeta"></div>
+    <div id="qResults"></div>
+  </div>
+</div>
+
+<div class="scrim" id="scrimPerson"></div>
+<div class="sheet" id="sheetPerson">
+  <button class="sheet-close" data-close="Person" aria-label="Close">×</button>
+  <div class="sheet-grip"></div>
+  <div class="sheet-body">
+    <div class="sheet-title" id="personTitle">Add person</div>
+    <div class="field"><label>Name</label><input class="input" id="pfName" placeholder="e.g. Rohan, Mummy, Chaiwala" maxlength="32" autocomplete="off"></div>
+    <div class="field">
+      <label>UPI ID</label>
+      <input class="input mono" id="pfUpi" placeholder="name@bank" maxlength="80" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="email">
+      <div class="hint">Looks like <span class="mono">rohan@okhdfc</span> or <span class="mono">9876543210@ybl</span>. The wallet only checks the shape — it can't confirm the ID is real, so copy it carefully.</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-line danger" id="pfDelete" style="display:none">Remove</button>
+      <button class="btn btn-solid" id="pfSave">Save person</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrimPay"></div>
+<div class="sheet" id="sheetPay">
+  <button class="sheet-close" data-close="Pay" aria-label="Close">×</button>
+  <div class="sheet-grip"></div>
+  <div class="sheet-body">
+    <div class="sheet-title">Pay</div>
+    <div class="pay-target"><div class="pt-name" id="payName"></div><div class="pt-upi" id="payUpi"></div></div>
+    <div class="field">
+      <label>Amount</label>
+      <div class="amount-wrap"><span class="cur">₹</span><input class="amount-input" id="payAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+    </div>
+    <div class="field"><label>Note <span style="opacity:.5;letter-spacing:.05em">— optional</span></label><input class="input" id="payNote" placeholder="e.g. Chai, split of dinner" maxlength="64" autocomplete="off"></div>
+    <div class="btn-row"><button class="btn btn-solid" id="btnDoPay">Pay via UPI →</button></div>
+    <div class="pay-note">Recorded here first, then your UPI app opens with the amount filled in. You approve the payment there — the wallet only builds the link.</div>
+  </div>
+</div>
+
 <div class="whatsnew" id="whatsNew">
   <div class="wn-card">
     <div class="wn-kicker">What's new</div>
@@ -905,8 +1225,14 @@ nav.tabbar{
   </div>
 </div>
 
+<div class="rewind" id="rewind">
+  <div class="rw-card" id="rewindCard"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 <input type="file" id="fileImport" accept="application/json,.json" hidden>
+<input type="file" id="fileReceiptCam" accept="image/*" capture="environment" hidden>
+<input type="file" id="fileReceiptLib" accept="image/*" hidden>
 
 <script>
 'use strict';
@@ -979,13 +1305,15 @@ function dbSnapDel(ts){return new Promise(res=>{if(!db)return res();try{const tx
 /* ================= state & helpers ================= */
 let entries=[];           // {id,ts,type,wallet:cash|upi|credit|debit,amount,note,cat?,source?,who?,from?,acct?,hidden?}
 // ===== version + what's-new =====
-const APP_VERSION='2.6';
+const APP_VERSION='2.7';
 const WHATS_NEW={
-  version:'2.6',
+  version:'2.7',
   items:[
-    'New: "Not from my balance" — when you spend on someone else\'s card or cash, toggle this on and it\'s logged but never deducted from your Cash/UPI. No more faking a "received" entry to balance the books.',
-    'The tab bar floats now — a rounded glass strip you can see the page through as you scroll under it.',
-    'Export to Excel asks for a date range first, and only exports that period.'
+    'Search — the ⌕ button in the header. Type a few letters and it finds any entry by item, category, account, whose money it was, who you paid, or the amount.',
+    'New Pay tab — save the people you send money to, then pay them from here. The wallet records the entry and hands the amount to your own UPI app; you still approve it there. It never moves money itself.',
+    'Scan a receipt on the New entry screen — take a photo of the bill or pick one from your gallery, and the amount, shop and date are read off it for you to check before saving. Runs entirely on your phone.',
+    'Rewind — once a month (or once a year, your choice) the wallet shows you a wrap-up of where the money went.',
+    'Settings replaces More, grouped into six sections instead of one long scroll. Card spends now say "Credit card" rather than "UPI", and they finally show up under the Bank · Card filter.'
   ]
 };
 let ledgerFilter='all';
@@ -994,6 +1322,10 @@ let customFrom=null, customTo=null;
 let editingId=null;
 let addType='out';
 const WALLETS=[{id:'cash',label:'Cash'},{id:'upi',label:'UPI'},{id:'credit',label:'Credit card'},{id:'debit',label:'Debit card'}];
+function walletLabel(id){const w=WALLETS.find(x=>x.id===id);return w?w.label:(id||'—');}
+/* Cash vs everything-else, matching sums(): cards and UPI all draw on the bank side.
+   Without this a credit-card spend fell through both chips and vanished from the ledger. */
+function walletMatches(filter,wallet){return filter==='cash'?wallet==='cash':wallet!=='cash';}
 const DEFAULT_SOURCES=[{id:'pocket',label:'Pocket money'},{id:'grandmother',label:'Grandmother'},{id:'bank',label:'Bank'}];
 const DEFAULT_CATS=['Food','Travel','Stuff','Online'];
 let customSources=[];   // {id,label}
@@ -1004,6 +1336,11 @@ let customCats=[];      // strings
 function CATS(){return DEFAULT_CATS.concat(customCats);}
 let accounts=[];        // {id,label}
 function accountLabel(id){const a=accounts.find(x=>x.id===id);return a?a.label:(id?'—':'');}
+let people=[];          // {id,name,upi} — who you pay by UPI
+function personName(id){const p=people.find(x=>x.id===id);return p?p.name:'';}
+let payTargetId=null, pfEditingId=null;
+let rewindFreq='month';        // 'month' | 'year'
+let lastRewindPeriod=null;     // e.g. '2026-06' or '2025' — the period already shown
 let privacyHidden=false, pinCode=null, pinOK=false;
 let recurrings=[];   // {id,name,amount,freq:'month'|'week'|'day',day,wallet,from,cat,acct,startTs,lastPaidTs}
 let rfEditingId=null, rfFreq='month', rfWallet='cash', rfFrom='', rfCat='', rfAcct='';
@@ -1028,9 +1365,22 @@ function armConfirm(key,msg){
   if(_arm[key]&&t-_arm[key]<3500){_arm[key]=0;return true;}
   _arm[key]=t;toast(msg);return false;
 }
-let _openSheets=0;
-function openSheet(id){_openSheets++;document.body.classList.add('sheet-open');$('#scrim'+id).classList.add('open');$('#sheet'+id).classList.add('open');}
-function closeSheet(id){_openSheets=Math.max(0,_openSheets-1);if(!_openSheets)document.body.classList.remove('sheet-open');$('#scrim'+id).classList.remove('open');$('#sheet'+id).classList.remove('open');}
+/* Count what's actually open rather than tracking a tally: a double open or a
+   close on an already-closed sheet used to drift the count and leave
+   body.sheet-open stuck, freezing page scroll until reload. */
+function _syncScrollLock(){
+  document.body.classList.toggle('sheet-open',!!document.querySelector('.sheet.open'));
+}
+function openSheet(id){
+  const sh=$('#sheet'+id);if(!sh)return;
+  $('#scrim'+id).classList.add('open');sh.classList.add('open');
+  _syncScrollLock();
+}
+function closeSheet(id){
+  const sh=$('#sheet'+id);if(!sh)return;
+  $('#scrim'+id).classList.remove('open');sh.classList.remove('open');
+  _syncScrollLock();
+}
 document.addEventListener('click',e=>{
   const btn=e.target.closest('.sheet-close');
   if(btn)closeSheet(btn.dataset.close);
@@ -1120,15 +1470,17 @@ function countTo(el,value,prefixNeg){
 function entryTitle(e){
   if(e.type==='other')return (e.who||'Someone')+(e.note?' \u2014 '+e.note:'');
   if(e.type==='in'){return e.note||sourceLabel(e.source)||'Received';}
+  if(e.personId&&!e.note){const n=personName(e.personId);if(n)return 'Paid '+n;}
   return e.note||'Spent';
 }
 function entryMeta(e){
-  const w=e.wallet==='cash'?'Cash':'UPI';
+  const w=walletLabel(e.wallet);
   const bits=[w];
   if(e.type==='in'){bits.push(sourceLabel(e.source));}
   if(e.type==='out'&&e.cat)bits.push(e.cat);
   if(e.type==='out'&&e.from){bits.push('from '+sourceLabel(e.from));}
-  if(e.acct){bits.push('· '+accountLabel(e.acct));}
+  if(e.personId){const n=personName(e.personId);if(n&&e.note)bits.push('to '+n);}
+  if(e.acct){bits.push(accountLabel(e.acct));}   /* join already adds the dot */
   if(e.type==='other')bits.push('for '+(e.who||'someone'));
   bits.push(new Date(e.ts).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'}));
   return bits.join(' \u00B7 ');
@@ -1234,7 +1586,7 @@ function accountCardHTML(scoped){
 }
 function renderPeriodSummary(b){
   const scoped0=visible().filter(e=>inRange(e,b));
-  const scoped=(ledgerFilter==='cash'||ledgerFilter==='upi')?scoped0.filter(e=>e.wallet===ledgerFilter):scoped0;
+  const scoped=(ledgerFilter==='cash'||ledgerFilter==='upi')?scoped0.filter(e=>walletMatches(ledgerFilter,e.wallet)):scoped0;
   const card=document.createElement('div');card.className='period-card';
   const head=cnt=>'<div class="pc-range"><span>'+esc(b.label)+'</span><span class="pc-count">'+cnt+(cnt===1?' entry':' entries')+'</span></div>';
   const agg=(list,keyFn,labelFn)=>{
@@ -1290,7 +1642,7 @@ function renderPeriodSummary(b){
   requestAnimationFrame(()=>card.querySelectorAll('.src-bar > i').forEach(bar=>{bar.style.width=bar.dataset.w+'%';}));
 }
 function renderChips(){
-  const defs=[{id:'all',label:'All'},{id:'cash',label:'Cash'},{id:'upi',label:'UPI'},{id:'out',label:'Spent'},{id:'in',label:'Received'},{id:'other',label:'For others'}];
+  const defs=[{id:'all',label:'All'},{id:'cash',label:'Cash'},{id:'upi',label:'Bank · Card'},{id:'out',label:'Spent'},{id:'in',label:'Received'},{id:'other',label:'For others'}];
   const wrap=$('#filterChips');wrap.innerHTML='';
   defs.forEach(c=>{
     const b=document.createElement('button');
@@ -1307,7 +1659,7 @@ function renderLedger(){
   renderChips();
   const body=$('#ledgerBody');body.innerHTML='';
   let list=visible().slice().filter(e=>inRange(e,bounds)).sort((a,b)=>b.ts-a.ts);
-  if(ledgerFilter==='cash'||ledgerFilter==='upi')list=list.filter(e=>e.wallet===ledgerFilter);
+  if(ledgerFilter==='cash'||ledgerFilter==='upi')list=list.filter(e=>walletMatches(ledgerFilter,e.wallet));
   else if(ledgerFilter!=='all')list=list.filter(e=>e.type===ledgerFilter);
   if(!list.length){
     body.innerHTML='<div class="empty"><div class="e-mark">\u2261</div><p>'+(visible().length?'Nothing in this range or filter.':'The ledger is blank. Record your first entry with the + button.')+'</p></div>';
@@ -1571,7 +1923,221 @@ function renderAcctDetail(id){
 }
 $('#btnAcctBack').addEventListener('click',()=>{acctView='list';acctSel=null;renderAccounts();window.scrollTo({top:0});});
 $('#btnAddAcct').addEventListener('click',()=>addAccountPrompt(id=>{acctSel=id;acctView='detail';renderAccounts();}));
-function renderAll(){renderHome();renderLedger();if($('#view-accounts'))renderAccounts();applyPrivacy();}
+/* ================= layered settings =================
+   Thirteen rows in one list meant a long scroll; they're grouped into six
+   pages now, same list/detail shape as the accounts tab. */
+let settingsPage=null;
+function renderSettings(){
+  $('#setRoot').style.display=settingsPage?'none':'';
+  document.querySelectorAll('.set-page').forEach(p=>{
+    p.classList.toggle('on',p.id==='setpage-'+settingsPage);
+  });
+}
+function openSettingsPage(page){settingsPage=page;renderSettings();window.scrollTo({top:0});}
+document.querySelectorAll('.set-group').forEach(g=>{
+  g.addEventListener('click',()=>openSettingsPage(g.dataset.page));
+});
+document.querySelectorAll('.set-back').forEach(b=>{
+  b.addEventListener('click',()=>openSettingsPage(null));
+});
+$('#btnPeopleJump').addEventListener('click',()=>{
+  document.querySelector('.tab[data-view="pay"]').click();
+});
+$('#btnAbout').addEventListener('click',showWhatsNew);
+$('#btnPrivacyRow').addEventListener('click',()=>{
+  privacyHidden=!privacyHidden;dbMetaPut('privacyHidden',privacyHidden);applyPrivacy();
+});
+
+/* ================= search =================
+   Every label an entry carries is searchable, not just the note: category,
+   source, whose-money, account, the person paid, the wallet, and the amount. */
+const SEARCH_CAP=60;
+let _qTimer=null;
+function searchFields(e){
+  return [
+    e.note||'',                                    // 0 — the item / what for
+    e.who||'',                                     // 1 — paid on behalf of
+    e.personId?personName(e.personId):'',          // 2 — paid to (Pay tab)
+    e.cat||'',                                     // 3 — category
+    e.type==='in'?sourceLabel(e.source):'',        // 4 — where it came from
+    e.from?sourceLabel(e.from):'',                 // 5 — whose money
+    e.acct?accountLabel(e.acct):'',                // 6 — account
+    walletLabel(e.wallet),                         // 7 — cash / upi / card
+    String(Math.round(e.amount))                   // 8 — amount, ranked last
+  ];
+}
+/* lower is better: the item name outranks a tag, and a match at the start of a
+   word outranks one buried mid-word */
+function searchScore(e,q){
+  const f=searchFields(e);
+  let best=99;
+  for(let i=0;i<f.length;i++){
+    if(!f[i])continue;
+    const s=String(f[i]).toLowerCase();
+    const ix=s.indexOf(q);
+    if(ix<0)continue;
+    const base=i===0?0:(i<=2?3:6);
+    const bump=ix===0?0:(/[\s\-·,]/.test(s[ix-1])?1:2);
+    best=Math.min(best,base+bump);
+    if(best===0)break;
+  }
+  return best;
+}
+function renderSearch(){
+  const q=$('#qInput').value.trim().toLowerCase();
+  const host=$('#qResults'), meta=$('#qMeta');
+  $('#qClear').classList.toggle('on',!!q);
+  host.innerHTML='';
+  if(!q){
+    meta.textContent='';
+    host.innerHTML='<div class="search-hint"><span class="sh-mark">⌕</span>'+
+      'Type a few letters. Searches the item, category, account, whose money it was, who you paid, and the amount.</div>';
+    return;
+  }
+  const hits=[];
+  for(const e of visible()){                       // hidden entries never surface here
+    const sc=searchScore(e,q);
+    if(sc<99)hits.push({e,sc});
+  }
+  hits.sort((a,b)=>a.sc-b.sc||b.e.ts-a.e.ts);      // best match, then most recent
+  if(!hits.length){
+    meta.textContent='';
+    host.innerHTML='<div class="search-hint"><span class="sh-mark">∅</span>'+
+      'Nothing matches “'+esc($('#qInput').value.trim())+'”. Try a shorter word, or part of the category or account name.</div>';
+    return;
+  }
+  const shown=hits.slice(0,SEARCH_CAP);
+  const net=hits.reduce((n,h)=>n+(h.e.type==='in'?h.e.amount:-h.e.amount),0);
+  meta.textContent=hits.length+(hits.length===1?' match':' matches')+
+    (hits.length>SEARCH_CAP?' · first '+SEARCH_CAP:'')+' · net '+fmtSigned(net);
+  const wrap=document.createElement('div');
+  shown.forEach((h,ix)=>wrap.appendChild(entryRow(h.e,ix)));
+  /* capture phase, so search is dismissed before entryRow's own handler opens
+     the edit sheet — otherwise the two sheets stack on top of each other */
+  wrap.addEventListener('click',ev=>{if(ev.target.closest('.entry'))closeSheet('Search');},true);
+  host.appendChild(wrap);
+  applyPrivacy();
+}
+function openSearch(){
+  openSheet('Search');
+  renderSearch();
+  setTimeout(()=>{try{$('#qInput').focus();}catch(e){}},380);
+}
+$('#btnSearch').addEventListener('click',openSearch);
+$('#scrimSearch').addEventListener('click',()=>closeSheet('Search'));
+$('#qDone').addEventListener('click',()=>closeSheet('Search'));
+$('#qClear').addEventListener('click',()=>{$('#qInput').value='';renderSearch();try{$('#qInput').focus();}catch(e){}});
+$('#qInput').addEventListener('input',()=>{clearTimeout(_qTimer);_qTimer=setTimeout(renderSearch,80);});
+$('#qInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();$('#qInput').blur();}
+  else if(e.key==='Escape')closeSheet('Search');
+});
+
+/* ================= pay: people + UPI hand-off =================
+   The wallet never moves money and never holds a PIN, card or bank detail.
+   It records the entry, builds a upi:// link and hands it to the user's own
+   UPI app, where they approve the payment themselves. */
+const UPI_RE=/^[a-zA-Z0-9](?:[a-zA-Z0-9.\-_]{0,63})@[a-zA-Z][a-zA-Z0-9.\-]{1,63}$/;
+function savePeople(){return dbMetaPut('people',people);}
+function personFigures(id){
+  let paid=0,cnt=0,last=0;
+  for(const e of visible()){
+    if(e.personId!==id||e.type!=='out')continue;
+    paid+=e.amount;cnt++;if(e.ts>last)last=e.ts;
+  }
+  return {paid,cnt,last};
+}
+function renderPay(){
+  const host=$('#payCards');host.innerHTML='';
+  if(!people.length){
+    host.innerHTML='<div class="empty" style="margin-top:6px"><div class="e-mark">⇥</div><p>No one saved yet. Add the people you send money to — a name and their UPI ID — and paying them becomes two taps.</p></div>';
+    return;
+  }
+  people.forEach(p=>{
+    const f=personFigures(p.id);
+    const c=document.createElement('div');c.className='acct-card person';
+    c.innerHTML='<div class="ac-top"><span class="ac-name">'+esc(p.name)+'</span><span class="ac-net mono">'+fmt(f.paid)+'</span></div>'+
+      '<div class="ac-upi">'+esc(p.upi)+'</div>'+
+      '<div class="ac-sub"><span class="ac-stat">Payments<b>'+f.cnt+'</b></span>'+
+      '<span class="ac-stat">Last<b>'+(f.last?dayLabel(f.last):'—')+'</b></span></div>'+
+      '<button class="ac-edit">Edit</button>';
+    c.addEventListener('click',()=>openPaySheet(p.id));
+    c.querySelector('.ac-edit').addEventListener('click',ev=>{ev.stopPropagation();openPersonSheet(p.id);});
+    host.appendChild(c);
+  });
+}
+function openPersonSheet(id){
+  pfEditingId=id||null;
+  const p=id?people.find(x=>x.id===id):null;
+  $('#personTitle').textContent=p?'Edit person':'Add person';
+  $('#pfName').value=p?p.name:'';
+  $('#pfUpi').value=p?p.upi:'';
+  $('#pfDelete').style.display=p?'':'none';
+  $('#pfSave').textContent=p?'Save changes':'Save person';
+  openSheet('Person');
+  if(!p)setTimeout(()=>{try{$('#pfName').focus();}catch(e){}},350);
+}
+$('#btnAddPerson').addEventListener('click',()=>openPersonSheet(null));
+$('#scrimPerson').addEventListener('click',()=>closeSheet('Person'));
+$('#pfSave').addEventListener('click',async ()=>{
+  const name=$('#pfName').value.trim();
+  const upi=$('#pfUpi').value.trim();
+  if(!name)return toast('Give them a name');
+  if(!UPI_RE.test(upi))return toast('That UPI ID doesn’t look right — it should read name@bank');
+  const clash=people.find(x=>x.upi.toLowerCase()===upi.toLowerCase()&&x.id!==pfEditingId);
+  if(clash)return toast(clash.name+' already has that UPI ID');
+  if(pfEditingId){
+    const p=people.find(x=>x.id===pfEditingId);if(!p)return;
+    p.name=name;p.upi=upi;
+  } else people.push({id:'p_'+uid(),name,upi});
+  await savePeople();
+  closeSheet('Person');renderPay();renderAll();
+  toast(pfEditingId?'Saved':name+' added');
+});
+$('#pfDelete').addEventListener('click',async ()=>{
+  if(!pfEditingId)return;
+  if(!armConfirm('delPerson','Tap Remove again — the payments you already logged stay in the ledger'))return;
+  people=people.filter(x=>x.id!==pfEditingId);
+  await savePeople();
+  closeSheet('Person');renderPay();renderAll();
+  toast('Removed');
+});
+function openPaySheet(id){
+  const p=people.find(x=>x.id===id);if(!p)return;
+  payTargetId=id;
+  $('#payName').textContent=p.name;
+  $('#payUpi').textContent=p.upi;
+  $('#payAmt').value='';$('#payNote').value='';
+  openSheet('Pay');
+  setTimeout(()=>{try{$('#payAmt').focus();}catch(e){}},350);
+}
+$('#scrimPay').addEventListener('click',()=>closeSheet('Pay'));
+$('#btnDoPay').addEventListener('click',async ()=>{
+  const p=people.find(x=>x.id===payTargetId);
+  if(!p)return toast('Pick someone to pay');
+  const amt=parseFloat(String($('#payAmt').value).replace(/[^\d.]/g,''));
+  if(!amt||amt<=0)return toast('Enter the amount first');
+  if(!UPI_RE.test(p.upi))return toast('That saved UPI ID looks broken — edit it first');
+  const note=$('#payNote').value.trim();
+  const amount=Math.round(amt*100)/100;
+  /* record it FIRST, so the payment is in the ledger even if they back out of the UPI app */
+  const rec={id:uid(),ts:Date.now(),type:'out',wallet:'upi',amount,note,personId:p.id};
+  await dbPut(rec);
+  entries.push(rec);
+  closeSheet('Pay');renderAll();snapshotSoon();
+  toast('Recorded — opening your UPI app');
+  /* hand off: we only build the link. They approve the payment in their own app. */
+  const q=[
+    'pa='+encodeURIComponent(p.upi),
+    'pn='+encodeURIComponent(p.name),
+    'am='+encodeURIComponent(amount.toFixed(2)),
+    'cu=INR',
+    'tn='+encodeURIComponent(note||('Paid '+p.name))
+  ].join('&');
+  setTimeout(()=>{try{window.location.href='upi://pay?'+q;}catch(e){toast('Couldn’t open a UPI app — the entry is saved');}},350);
+});
+
+function renderAll(){renderHome();renderLedger();if($('#view-accounts'))renderAccounts();if($('#view-pay'))renderPay();applyPrivacy();}
 
 /* ================= tabs ================= */
 document.querySelectorAll('.tab').forEach(t=>{
@@ -1579,8 +2145,11 @@ document.querySelectorAll('.tab').forEach(t=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     $('#view-'+t.dataset.view).classList.add('active');
-    $('#fabAdd').style.display=(t.dataset.view==='more'||t.dataset.view==='accounts')?'none':'flex';
-    if(t.dataset.view==='accounts'){acctView='list';acctSel=null;renderAccounts();}
+    const v=t.dataset.view;
+    $('#fabAdd').style.display=(v==='settings'||v==='accounts'||v==='pay')?'none':'flex';
+    if(v==='accounts'){acctView='list';acctSel=null;renderAccounts();}
+    if(v==='pay')renderPay();
+    if(v==='settings'){settingsPage=null;renderSettings();}   // always land on the menu
     window.scrollTo({top:0});
   });
 });
@@ -1707,6 +2276,7 @@ function openAdd(id){
     $('#btnHideEntry').style.display='none';
     $('#fDate').value=toDateInput(Date.now());
   }
+  rcptBusy(false);rcptStatus('');
   refreshAddForm();
   openSheet('Add');
   if(!id)setTimeout(()=>{try{$('#fAmt').focus();}catch(e){}},350);
@@ -1734,6 +2304,8 @@ $('#btnSaveEntry').addEventListener('click',async ()=>{
   if((addType==='out'||addType==='other')&&fNoDeduct)rec.noDeduct=true;  // logged, but not deducted from Cash/UPI
   if(addType!=='other'&&fAcct)rec.acct=fAcct;                       // which account
   if(addType==='other')rec.who=$('#fWho').value.trim();
+  if(prev&&prev.personId)rec.personId=prev.personId;                // keep the Pay-tab link on an edit
+  if(prev&&prev.hidden)rec.hidden=true;                             // an edit must never silently unhide
   await dbPut(rec);
   const ix=entries.findIndex(x=>x.id===rec.id);
   if(ix>-1)entries[ix]=rec;else entries.push(rec);
@@ -1774,6 +2346,215 @@ $('#btnOpening').addEventListener('click',()=>{
   toast('Count your cash, enter the total');
 });
 
+/* ================= receipt scan (on-device OCR) =================
+   Same lazy-from-CDN shape as loadXLSX below. Nothing leaves the phone:
+   Tesseract.js reads the photo in a worker. If any of it fails — no network,
+   blocked CDN, unreadable photo — the sheet still works and you type it in. */
+const TESS_VER='5.1.1', TESS_CORE='5.1.0';
+let _tessP=null;
+function loadTesseract(){
+  if(window.Tesseract)return Promise.resolve(window.Tesseract);
+  if(_tessP)return _tessP;
+  _tessP=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/tesseract.js@'+TESS_VER+'/dist/tesseract.min.js';
+    s.onload=()=>window.Tesseract?res(window.Tesseract):rej(new Error('tesseract missing'));
+    s.onerror=()=>rej(new Error('tesseract load failed'));
+    document.head.appendChild(s);
+    setTimeout(()=>rej(new Error('tesseract timeout')),20000);
+  }).catch(e=>{_tessP=null;throw e;});
+  return _tessP;
+}
+/* downscale + grayscale: smaller is much faster on a phone, and flattening the
+   colour of a crumpled bill under warm light reads noticeably better */
+function prepReceipt(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const max=1600;
+        const scale=Math.min(1,max/Math.max(img.width,img.height));
+        const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        const g=c.getContext('2d');
+        g.drawImage(img,0,0,w,h);
+        const d=g.getImageData(0,0,w,h), px=d.data;
+        for(let i=0;i<px.length;i+=4){
+          const v=px[i]*0.299+px[i+1]*0.587+px[i+2]*0.114;
+          // mild contrast stretch around mid-grey
+          const s=Math.max(0,Math.min(255,(v-128)*1.35+128));
+          px[i]=px[i+1]=px[i+2]=s;
+        }
+        g.putImageData(d,0,0);
+        URL.revokeObjectURL(url);
+        res(c);
+      }catch(e){URL.revokeObjectURL(url);rej(e);}
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('not an image'));};
+    img.src=url;
+  });
+}
+const MONTHS={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+/* pull every plausible rupee figure off a line, biggest last */
+function numbersOn(line){
+  const out=[];
+  const re=/(?:₹|rs\.?|inr)?\s*(\d{1,3}(?:,\d{2,3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/gi;
+  let m;
+  while((m=re.exec(line))){
+    const raw=m[1];
+    const n=parseFloat(raw.replace(/,/g,''));
+    if(!isFinite(n)||n<=0||n>10000000)continue;
+    // a bare 2-4 digit run with no decimal and no separator is often a bill no. / time / pincode
+    const looksLikeMoney=/[₹]|rs|inr/i.test(m[0])||raw.includes(',')||raw.includes('.');
+    out.push({n,looksLikeMoney});
+  }
+  return out;
+}
+function parseReceiptText(text){
+  const lines=String(text||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const got={amount:null,note:'',date:null};
+
+  /* ---- amount: a "total" line wins; otherwise the biggest money-shaped figure ---- */
+  const wants=/(grand\s*total|net\s*(?:amount|payable|total)|amount\s*(?:due|payable)|total\s*(?:amount|payable|due)?|balance\s*due|to\s*pay)/i;
+  const avoid=/(sub\s*-?\s*total|s\s*u\s*b\s*total|tax|gst|cgst|sgst|igst|vat|cess|discount|round(?:ing|\s*off)?|saving|cash|card|tender|change|due\s*date|qty|items?\b|mrp)/i;
+  for(let i=lines.length-1;i>=0&&got.amount==null;i--){          // read bottom-up: the grand total prints last
+    const l=lines[i];
+    if(!wants.test(l)||avoid.test(l))continue;
+    const cands=numbersOn(l);
+    if(cands.length)got.amount=cands[cands.length-1].n;          // the figure after the words
+  }
+  if(got.amount==null){
+    let best=null;
+    lines.forEach(l=>{
+      if(avoid.test(l))return;
+      numbersOn(l).forEach(c=>{ if(c.looksLikeMoney&&(!best||c.n>best))best=c.n; });
+    });
+    if(best==null)lines.forEach(l=>{ numbersOn(l).forEach(c=>{ if(!best||c.n>best)best=c.n; }); });
+    got.amount=best;
+  }
+
+  /* ---- note: the shop name off the top of the bill; if OCR lost the
+         letterhead (it often drops the biggest type), name it by what was bought ---- */
+  const skipHead=/^(gst|gstin|tin|invoice|bill|receipt|tax|date|time|order|table|token|cashier|phone|tel|mob)/i;
+  const looksAddress=l=>/\b\d{6}\b/.test(l)||/\b(road|rd|street|nagar|marg|lane|colony|floor)\b/i.test(l);
+  const usable=l=>{
+    const letters=(l.match(/[A-Za-z]/g)||[]).length;
+    return letters>=3&&letters/l.length>=0.45;                   // mostly digits/symbols — not a name
+  };
+  const tidy=l=>{
+    let s=l.replace(/(?:₹|rs\.?|inr)?\s*\d[\d,]*(?:\.\d{1,2})?\s*$/i,'')   // drop a trailing price
+           .replace(/[*|_#=~:]+/g,' ').replace(/\s{2,}/g,' ').trim().slice(0,40);
+    if(s.length>=3&&s===s.toUpperCase())                         // ALL CAPS reads better in title case
+      s=s.toLowerCase().replace(/\b[a-z]/g,c=>c.toUpperCase());
+    return s;
+  };
+  /* word-bounded so a shop called "Totally Fresh" isn't mistaken for a totals line */
+  const isTally=/\b(sub\s*-?\s*total|total|amount|payable|balance|due|change|tendered?|cash|qty|discount|gst|cgst|sgst|vat)\b/i;
+  for(const l of lines.slice(0,6)){
+    if(skipHead.test(l)||looksAddress(l)||isTally.test(l)||!usable(l))continue;
+    const n=tidy(l);if(n.length>=3){got.note=n;break;}
+  }
+  if(!got.note){
+    for(const l of lines){
+      if(skipHead.test(l)||looksAddress(l)||isTally.test(l)||!usable(l))continue;
+      const n=tidy(l);if(n.length>=3){got.note=n;break;}
+    }
+  }
+
+  /* ---- date: day-first for Indian bills; ignore anything absurd ---- */
+  const sane=(y,m,d)=>{
+    if(m<0||m>11||d<1||d>31)return null;
+    if(y<100)y+=y>70?1900:2000;
+    const dt=new Date(y,m,d,12,0,0);
+    if(dt.getFullYear()!==y||dt.getMonth()!==m||dt.getDate()!==d)return null;
+    const now=Date.now();
+    if(dt.getTime()>now+2*86400000)return null;                  // not the future
+    if(dt.getTime()<now-10*365*86400000)return null;             // not a decade ago
+    return dt.getTime();
+  };
+  const joined=lines.join('\n');
+  let dm;
+  const numeric=/\b(\d{1,4})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{2,4})\b/g;
+  while((dm=numeric.exec(joined))&&got.date==null){
+    const a=+dm[1],b=+dm[2],c=+dm[3];
+    got.date=(String(dm[1]).length===4)?sane(a,b-1,c):sane(c,b-1,a);   // yyyy-mm-dd else dd-mm-yyyy
+  }
+  if(got.date==null){
+    const named=/\b(\d{1,2})\s*[-\s]\s*([A-Za-z]{3,9})\.?\s*[-,\s]\s*(\d{2,4})\b/g;
+    while((dm=named.exec(joined))&&got.date==null){
+      const mo=MONTHS[dm[2].slice(0,3).toLowerCase()];
+      if(mo!==undefined)got.date=sane(+dm[3],mo,+dm[1]);
+    }
+  }
+  if(got.date==null){
+    const named2=/\b([A-Za-z]{3,9})\.?\s+(\d{1,2})\s*[,\s]\s*(\d{2,4})\b/g;
+    while((dm=named2.exec(joined))&&got.date==null){
+      const mo=MONTHS[dm[1].slice(0,3).toLowerCase()];
+      if(mo!==undefined)got.date=sane(+dm[3],mo,+dm[2]);
+    }
+  }
+  return got;
+}
+function rcptStatus(msg,bad){
+  const el=$('#rcptMsg');
+  el.textContent=msg||'';
+  el.classList.toggle('on',!!msg);
+  el.classList.toggle('bad',!!bad);
+}
+function rcptBusy(on,label,pct){
+  $('#rcptBox').classList.toggle('busy',on);
+  $('#rcptTitle').textContent=on?(label||'Reading the receipt…'):'Scan a receipt';
+  $('#rcptCaption').textContent=on
+    ? 'Keep this screen open. You can still type the amount in yourself.'
+    : 'The amount, date and shop get read off the bill for you to check.';
+  $('#rcptBar').style.width=(on?Math.round((pct||0)*100):0)+'%';
+}
+/* two inputs, one handler: 'Take photo' asks the OS for the camera, 'Choose photo'
+   for the library. On desktop `capture` is ignored and both open a file picker. */
+$('#btnRcptCamera').addEventListener('click',()=>$('#fileReceiptCam').click());
+$('#btnRcptFile').addEventListener('click',()=>$('#fileReceiptLib').click());
+['#fileReceiptCam','#fileReceiptLib'].forEach(sel=>$(sel).addEventListener('change',e=>readReceipt(e)));
+async function readReceipt(e){
+  const f=e.target.files[0];e.target.value='';
+  if(!f)return;
+  if(!/^image\//.test(f.type||''))return rcptStatus('That file isn’t a photo. Pick an image of the bill.',true);
+  rcptStatus('');
+  rcptBusy(true,'Getting the reader ready…',0.02);
+  let text='';
+  try{
+    const [Tess,canvas]=await Promise.all([loadTesseract(),prepReceipt(f)]);
+    rcptBusy(true,'Reading the receipt…',0.1);
+    const out=await Tess.recognize(canvas,'eng',{
+      workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@'+TESS_VER+'/dist/worker.min.js',
+      corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@'+TESS_CORE+'/',
+      langPath:'https://tessdata.projectnaptha.com/4.0.0',
+      logger:m=>{
+        if(m.status==='loading language traineddata')rcptBusy(true,'Downloading the reader (once only)…',0.05+0.35*(m.progress||0));
+        else if(m.status==='recognizing text')rcptBusy(true,'Reading the receipt…',0.5+0.5*(m.progress||0));
+      }
+    });
+    text=(out&&out.data&&out.data.text)||'';
+  }catch(err){
+    rcptBusy(false);
+    rcptStatus('Couldn’t start the receipt reader — it needs to fetch about 11 MB the first time, so check your connection. Type the entry in as usual.',true);
+    return;
+  }
+  rcptBusy(false);
+  const g=parseReceiptText(text);
+  if(g.amount==null&&!g.note){
+    rcptStatus('Nothing readable in that photo. Try again in better light with the whole bill flat in frame — or just type it in.',true);
+    return;
+  }
+  const filled=[];
+  if(g.amount!=null){$('#fAmt').value=String(Math.round(g.amount*100)/100);filled.push('amount');}
+  if(g.note){$('#fNote').value=g.note;filled.push('shop');}
+  if(g.date!=null){$('#fDate').value=toDateInput(g.date);filled.push('date');}
+  else if(!$('#fDate').value)$('#fDate').value=toDateInput(Date.now());
+  rcptStatus('Read the '+filled.join(', ')+' off the receipt — check it against the bill and fix anything that’s off before you record it.');
+  if(navigator.vibrate)try{navigator.vibrate(12);}catch(_){}
+}
+
 /* ================= export: excel ================= */
 let _xlsxP=null;
 function loadXLSX(){
@@ -1797,9 +2578,10 @@ function rowsForExport(b){
     'Date':new Date(e.ts).toLocaleDateString('en-IN'),
     'Time':new Date(e.ts).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'}),
     'Type':e.type==='in'?'Received':(e.type==='other'?'For someone':'Spent'),
-    'Wallet':e.wallet==='cash'?'Cash':'UPI/Bank',
+    'Wallet':walletLabel(e.wallet),
     'Source':e.type==='in'?sourceLabel(e.source):'',
     'For whom':e.who||'',
+    'Paid to':e.personId?personName(e.personId):'',
     'Note':e.note||'',
     'Category':e.cat||'',
     'In (\u20B9)':e.type==='in'?e.amount:'',
@@ -1942,10 +2724,139 @@ function maybeShowWhatsNew(){
   // seen===null with an empty wallet => brand-new user, nothing is "new" to them
   if(seen===null && entries.length===0){markWhatsNewSeen();return;}
   // otherwise they're on an older version (or first run of this version with existing data) => show it once
-  const wait=()=>{ if($('#sheetDue').classList.contains('open')){setTimeout(wait,600);return;} setTimeout(showWhatsNew,300); };
+  /* must queue behind the PIN gate too — the card sits above it and used to
+     cover the keypad on a locked wallet */
+  const wait=()=>{
+    if($('#pinGate').classList.contains('on')||$('#sheetDue').classList.contains('open')){setTimeout(wait,600);return;}
+    setTimeout(showWhatsNew,300);
+  };
   wait();
 }
 $('#wnGotIt').addEventListener('click',()=>{markWhatsNewSeen();$('#whatsNew').classList.remove('on');});
+
+/* ================= rewind =================
+   Same show-once gating as what's-new, but keyed to the period instead of the
+   version: 'lastRewindPeriod' holds the period already shown ('2026-06' / '2025'). */
+/* the period that just ended, in the same {from,to,label} shape as boundsFor */
+function rewindPeriod(freq,back){
+  const now=new Date(), n=back==null?1:back;
+  if(freq==='year'){
+    const y=now.getFullYear()-n;
+    return {key:String(y),from:new Date(y,0,1).getTime(),to:new Date(y+1,0,1).getTime()-1,
+      label:String(y),kicker:'Your year in money'};
+  }
+  const d=new Date(now.getFullYear(),now.getMonth()-n,1);
+  const y=d.getFullYear(), m=d.getMonth();
+  return {key:y+'-'+String(m+1).padStart(2,'0'),
+    from:new Date(y,m,1).getTime(),to:new Date(y,m+1,1).getTime()-1,
+    label:d.toLocaleDateString('en-IN',{month:'long',year:'numeric'}),kicker:'Your month in money'};
+}
+function rewindStats(b){
+  const list=visible().filter(e=>e.ts>=b.from&&e.ts<=b.to);
+  let spent=0,received=0,others=0,biggest=null;
+  const cats={};
+  for(const e of list){
+    if(e.type==='out'&&!e.noDeduct)spent+=e.amount;
+    else if(e.type==='in'&&!e.noDeduct)received+=e.amount;
+    else if(e.type==='other'&&!e.noDeduct)others+=e.amount;
+    if(e.type==='out'){
+      const k=e.cat||'Uncategorised';
+      const c=cats[k]||(cats[k]={label:k,amt:0,cnt:0});
+      c.amt+=e.amount;c.cnt++;
+      if(!biggest||e.amount>biggest.amount)biggest=e;
+    }
+  }
+  const top=Object.values(cats).sort((a,b2)=>b2.amt-a.amt).slice(0,3);
+  const days=Math.max(1,Math.round((Math.min(b.to,Date.now())-b.from)/86400000));
+  return {list,count:list.length,spent,received,others,biggest,top,days,
+    outTotal:Object.values(cats).reduce((n,c)=>n+c.amt,0)};
+}
+function rewindHTML(b,s){
+  let h='';
+  const step=i=>' style="animation-delay:'+(i*0.07).toFixed(2)+'s"';
+  let i=0;
+  h+='<div class="rw-kicker"'+step(i++)+'>Rewind · '+esc(b.kicker)+'</div>';
+  h+='<div class="rw-period"'+step(i++)+'>'+esc(b.label)+'</div>';
+  h+='<div class="rw-sub"'+step(i++)+'>'+s.count+(s.count===1?' entry':' entries')+' recorded'+
+     (s.days>1?' across '+s.days+' days':'')+'.</div>';
+  h+='<div class="rw-hero"'+step(i++)+'><div class="rwh-k">Total spent</div>'+
+     '<div class="rwh-v">'+fmt(s.spent)+'</div>'+
+     '<div class="rwh-row"><div class="rwh-cell"><div class="rwh-ck">Received</div><div class="rwh-cv">'+fmt(s.received)+'</div></div>'+
+     '<div class="rwh-cell"><div class="rwh-ck">Net</div><div class="rwh-cv">'+fmtSigned(s.received-s.spent-s.others)+'</div></div></div></div>';
+  if(s.top.length){
+    h+='<div class="rw-sec"'+step(i++)+'>Where it went</div>';
+    const max=s.top[0].amt||1;
+    s.top.forEach((c,ix)=>{
+      h+='<div class="rw-cat"'+step(i++)+'><div class="rwc-top"><span><span class="rwc-rank">'+(ix+1)+'</span>'+
+        '<span class="rwc-name">'+esc(c.label)+'</span></span><span class="rwc-amt">'+fmt(c.amt)+'</span></div>'+
+        '<div class="rwc-bar"><i data-w="'+Math.max(4,Math.round(c.amt/max*100))+'"></i></div>'+
+        '<div class="rwc-sub">'+c.cnt+(c.cnt===1?' entry':' entries')+
+        (s.outTotal?' · '+Math.round(c.amt/s.outTotal*100)+'% of your spending':'')+'</div></div>';
+    });
+  }
+  const hi=[];
+  if(s.biggest){
+    hi.push('Your biggest single spend was <b>'+fmt(s.biggest.amount)+'</b> on '+
+      esc(entryTitle(s.biggest))+', on '+new Date(s.biggest.ts).toLocaleDateString('en-IN',{day:'numeric',month:'long'})+'.');
+  }
+  if(s.spent>0&&s.days>1)hi.push('That works out to about <b>'+fmt(s.spent/s.days)+'</b> a day.');
+  if(s.top.length&&s.outTotal)hi.push('<b>'+esc(s.top[0].label)+'</b> took the biggest bite — '+
+    Math.round(s.top[0].amt/s.outTotal*100)+'% of everything you spent.');
+  if(s.others>0)hi.push('You also put <b>'+fmt(s.others)+'</b> in for other people.');
+  if(hi.length){
+    h+='<div class="rw-sec"'+step(i++)+'>Worth noticing</div>';
+    hi.slice(0,3).forEach(t=>{h+='<div class="rw-hi"'+step(i++)+'>'+t+'</div>';});
+  }
+  h+='<button class="btn btn-solid" id="rwGotIt" style="width:100%;margin-top:18px"'+step(i++)+'>Got it</button>';
+  return h;
+}
+function showRewind(b,s,markSeen){
+  const card=$('#rewindCard');
+  card.innerHTML=rewindHTML(b,s);
+  card.scrollTop=0;
+  $('#rewind').classList.add('on');
+  requestAnimationFrame(()=>card.querySelectorAll('.rwc-bar > i').forEach(el=>{el.style.width=el.dataset.w+'%';}));
+  $('#rwGotIt').addEventListener('click',async ()=>{
+    $('#rewind').classList.remove('on');
+    if(markSeen){lastRewindPeriod=b.key;await dbMetaPut('lastRewindPeriod',b.key);}
+  });
+}
+function maybeShowRewind(){
+  const b=rewindPeriod(rewindFreq);
+  if(lastRewindPeriod===b.key)return;                    // already seen this one
+  const s=rewindStats(b);
+  if(!s.count){                                          // nothing happened — don't burn the period
+    return;
+  }
+  const wait=()=>{
+    if($('#pinGate').classList.contains('on')||$('#sheetDue').classList.contains('open')||
+       $('#whatsNew').classList.contains('on')){setTimeout(wait,700);return;}
+    setTimeout(()=>showRewind(b,s,true),350);
+  };
+  wait();
+}
+function rewindFreqLabel(){
+  const monthly=rewindFreq!=='year';
+  $('#rewindFreqVal').textContent=monthly?'Monthly':'Yearly';
+  $('#rewindFreqSub').textContent=monthly
+    ?'Monthly — a wrap-up of the month gone by, shown once when you open the wallet.'
+    :'Yearly — one wrap-up of the whole year, shown once after the year turns.';
+}
+$('#btnRewindFreq').addEventListener('click',async ()=>{
+  rewindFreq=rewindFreq==='year'?'month':'year';
+  await dbMetaPut('rewindFreq',rewindFreq);
+  rewindFreqLabel();
+  toast('Rewind is '+(rewindFreq==='year'?'yearly':'monthly')+' now');
+});
+$('#btnRewindShow').addEventListener('click',()=>{
+  /* walk back until we find a period that actually has entries */
+  for(let back=1;back<=(rewindFreq==='year'?6:24);back++){
+    const b=rewindPeriod(rewindFreq,back);
+    const s=rewindStats(b);
+    if(s.count){showRewind(b,s,false);return;}
+  }
+  toast('No finished '+(rewindFreq==='year'?'year':'month')+' with entries to rewind yet');
+});
 
 $('#btnWipe').addEventListener('click',async ()=>{
   if(!entries.length)return toast('Already empty');
@@ -1962,9 +2873,11 @@ $('#btnDemo').addEventListener('click',async ()=>{
   accounts=[{id:'a_japan',label:'Japan Trip'},{id:'a_savings',label:'Savings'},{id:'a_personal',label:'Personal'}];
   customSources=[{id:'s_sister',label:'Sister'},{id:'s_dad',label:'Dad'}];
   customCats=['Blinkit','Zomato'];
+  people=[{id:'p_rohan',name:'Rohan',upi:'rohan@okhdfc'},{id:'p_kirana',name:'Kirana shop',upi:'9876543210@ybl'}];
   await dbMetaPut('accounts',accounts);
   await dbMetaPut('customSources',customSources);
   await dbMetaPut('customCats',customCats);
+  await dbMetaPut('people',people);
   const demo=[
     // opening cash count
     {id:'d1',ts:now-9*day,type:'in',wallet:'cash',amount:3000,note:'Opening cash count',source:'pocket'},
@@ -1986,6 +2899,9 @@ $('#btnDemo').addEventListener('click',async ()=>{
     {id:'d10',ts:now-1*day,type:'other',wallet:'upi',amount:800,note:'Movie tickets',who:'Rohan',from:'pocket'},
     // a hidden entry to demonstrate hide/unhide (out of view & totals until restored)
     {id:'d11',ts:now-1*day,type:'out',wallet:'cash',amount:250,note:'Something private',cat:'Stuff',from:'pocket',hidden:true},
+    // paid straight from the Pay tab — linked back to a saved person
+    {id:'d12',ts:now-4*day,type:'out',wallet:'upi',amount:300,note:'Split of the cab',cat:'Travel',from:'pocket',personId:'p_rohan'},
+    {id:'d13',ts:now-1*day,type:'out',wallet:'upi',amount:180,note:'',cat:'Blinkit',from:'pocket',personId:'p_kirana'},
   ];
   for(const en of demo){await dbPut(en);const ix=entries.findIndex(x=>x.id===en.id);if(ix>-1)entries[ix]=en;else entries.push(en);}
   renderAll();snapshotSoon();
@@ -2082,6 +2998,7 @@ function applyPrivacy(){
   const on=privacyHidden;
   ['#balTotal','#balCash','#balUpi','#stSpent','#stOthers','#stIn'].forEach(sel=>{const el=$(sel);if(el)el.classList.toggle('blurred',on);});
   const pv=$('#btnPrivacy');if(pv)pv.textContent=on?'○':'◉';
+  const pr=$('#privacyRowVal');if(pr)pr.textContent=on?'On':'Off';
 }
 $('#btnPrivacy').addEventListener('click',()=>{privacyHidden=!privacyHidden;dbMetaPut('privacyHidden',privacyHidden);applyPrivacy();});
 
@@ -2124,6 +3041,11 @@ function showPinGate(){
   const cc=await dbMetaGet('customCats');if(Array.isArray(cc))customCats=cc;
   const ac=await dbMetaGet('accounts');if(Array.isArray(ac))accounts=ac;
   const rc=await dbMetaGet('recurrings');if(Array.isArray(rc))recurrings=rc;
+  const pp=await dbMetaGet('people');if(Array.isArray(pp))people=pp;
+  const rf=await dbMetaGet('rewindFreq');if(rf==='year'||rf==='month')rewindFreq=rf;
+  lastRewindPeriod=(await dbMetaGet('lastRewindPeriod'))||null;
+  rewindFreqLabel();
+  $('#aboutSub').textContent='Version '+APP_VERSION;
   privacyHidden=!!(await dbMetaGet('privacyHidden'));
   pinCode=(await dbMetaGet('pinCode'))||null;
   if(pinCode)showPinGate();
@@ -2140,6 +3062,7 @@ function showPinGate(){
   // catch up any recurring payments due since last open — ask before logging each
   if(!pinCode){ dueQueue=collectDue(); if(dueQueue.length)setTimeout(showDueQueue,700); }
   maybeShowWhatsNew();
+  maybeShowRewind();
 })();
 </script>
 </body>
