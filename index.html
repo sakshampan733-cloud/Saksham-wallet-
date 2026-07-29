@@ -1211,8 +1211,12 @@ nav.tabbar{
       <div class="amount-wrap"><span class="cur">₹</span><input class="amount-input" id="payAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off"></div>
     </div>
     <div class="field"><label>Note <span style="opacity:.5;letter-spacing:.05em">— optional</span></label><input class="input" id="payNote" placeholder="e.g. Chai, split of dinner" maxlength="64" autocomplete="off"></div>
+    <div class="field">
+      <label>Open with</label>
+      <div class="chips" id="payAppChips"></div>
+    </div>
     <div class="btn-row"><button class="btn btn-solid" id="btnDoPay">Pay via UPI →</button></div>
-    <div class="pay-note">Recorded here first, then your UPI app opens with the amount filled in. You approve the payment there — the wallet only builds the link.</div>
+    <div class="pay-note">Recorded here first, then that app opens with the amount filled in. You approve the payment there — the wallet only builds the link. On iPhone this is best-effort — if the app you pick doesn't have it, any UPI app opens instead.</div>
   </div>
 </div>
 
@@ -2038,6 +2042,66 @@ $('#qInput').addEventListener('keydown',e=>{
    It records the entry, builds a upi:// link and hands it to the user's own
    UPI app, where they approve the payment themselves. */
 const UPI_RE=/^[a-zA-Z0-9](?:[a-zA-Z0-9.\-_]{0,63})@[a-zA-Z][a-zA-Z0-9.\-]{1,63}$/;
+
+/* ---- which app the UPI link should open in ----
+   A plain upi://pay link just asks the OS "who handles this?" — if WhatsApp
+   was ever set as the default UPI handler (or is simply the OS's pick),
+   that's what opens, no matter which app you meant to use. Android lets a
+   web page target one specific installed app via an intent:// URL with its
+   package name, which is reliable. iOS has no such mechanism from a web
+   page — the best we can do is try that app's own URL scheme first and
+   fall back to the generic link if it doesn't seem to have opened. */
+const UPI_APPS={
+  any:    {label:'Any app',    androidPkg:null,                                   iosScheme:null},
+  paytm:  {label:'Paytm',      androidPkg:'net.one97.paytm',                      iosScheme:'paytmmp://'},
+  gpay:   {label:'Google Pay', androidPkg:'com.google.android.apps.nbu.paisa.user', iosScheme:'gpay://upi/'},
+  phonepe:{label:'PhonePe',    androidPkg:'com.phonepe.app',                      iosScheme:'phonepe://'},
+  bhim:   {label:'BHIM',       androidPkg:'in.org.npci.upiapp',                   iosScheme:null}
+};
+let preferredUpiApp='paytm';
+const isAndroid=()=>/Android/i.test(navigator.userAgent);
+const isIOS=()=>/iPhone|iPad|iPod/i.test(navigator.userAgent)&&!window.MSStream;
+function buildUpiHandoff(pa,pn,amount,note,appKey){
+  const q='pa='+encodeURIComponent(pa)+'&pn='+encodeURIComponent(pn)+
+    '&am='+encodeURIComponent(amount.toFixed(2))+'&cu=INR&tn='+encodeURIComponent(note);
+  const app=UPI_APPS[appKey]||UPI_APPS.any;
+  const generic='upi://pay?'+q;
+  if(appKey!=='any'&&isAndroid()&&app.androidPkg){
+    // targets that one app directly; Android falls back to the Play Store listing if it isn't installed
+    return {primary:'intent://pay?'+q+'#Intent;scheme=upi;package='+app.androidPkg+';end',fallback:null};
+  }
+  if(appKey!=='any'&&isIOS()&&app.iosScheme){
+    return {primary:app.iosScheme+'pay?'+q,fallback:generic};
+  }
+  return {primary:generic,fallback:null};
+}
+/* on iOS there's no way to ask "did that app open?" directly — if the page is
+   still visible a moment later, assume the scheme wasn't handled and retry
+   with the generic link so the payment isn't stranded */
+function launchUpi(link){
+  if(!link.fallback){window.location.href=link.primary;return;}
+  let left=false;
+  const onHide=()=>{left=true;};
+  document.addEventListener('visibilitychange',onHide,{once:true});
+  window.location.href=link.primary;
+  setTimeout(()=>{
+    document.removeEventListener('visibilitychange',onHide);
+    if(!left)window.location.href=link.fallback;
+  },1200);
+}
+function renderPayAppChips(){
+  const wrap=$('#payAppChips');if(!wrap)return;
+  wrap.innerHTML='';
+  Object.keys(UPI_APPS).forEach(key=>{
+    const b=document.createElement('button');
+    b.className='chip'+(preferredUpiApp===key?' on':'');
+    b.textContent=UPI_APPS[key].label;
+    b.addEventListener('click',()=>{
+      preferredUpiApp=key;dbMetaPut('preferredUpiApp',key);renderPayAppChips();
+    });
+    wrap.appendChild(b);
+  });
+}
 function savePeople(){return dbMetaPut('people',people);}
 function personFigures(id){
   let paid=0,cnt=0,last=0;
@@ -2108,6 +2172,7 @@ function openPaySheet(id){
   $('#payName').textContent=p.name;
   $('#payUpi').textContent=p.upi;
   $('#payAmt').value='';$('#payNote').value='';
+  renderPayAppChips();
   openSheet('Pay');
   setTimeout(()=>{try{$('#payAmt').focus();}catch(e){}},350);
 }
@@ -2125,16 +2190,11 @@ $('#btnDoPay').addEventListener('click',async ()=>{
   await dbPut(rec);
   entries.push(rec);
   closeSheet('Pay');renderAll();snapshotSoon();
-  toast('Recorded — opening your UPI app');
+  const appLabel=UPI_APPS[preferredUpiApp].label;
+  toast('Recorded — opening '+(preferredUpiApp==='any'?'your UPI app':appLabel));
   /* hand off: we only build the link. They approve the payment in their own app. */
-  const q=[
-    'pa='+encodeURIComponent(p.upi),
-    'pn='+encodeURIComponent(p.name),
-    'am='+encodeURIComponent(amount.toFixed(2)),
-    'cu=INR',
-    'tn='+encodeURIComponent(note||('Paid '+p.name))
-  ].join('&');
-  setTimeout(()=>{try{window.location.href='upi://pay?'+q;}catch(e){toast('Couldn’t open a UPI app — the entry is saved');}},350);
+  const link=buildUpiHandoff(p.upi,p.name,amount,note||('Paid '+p.name),preferredUpiApp);
+  setTimeout(()=>{try{launchUpi(link);}catch(e){toast('Couldn’t open a UPI app — the entry is saved');}},350);
 });
 
 function renderAll(){renderHome();renderLedger();if($('#view-accounts'))renderAccounts();if($('#view-pay'))renderPay();applyPrivacy();}
@@ -3042,6 +3102,7 @@ function showPinGate(){
   const ac=await dbMetaGet('accounts');if(Array.isArray(ac))accounts=ac;
   const rc=await dbMetaGet('recurrings');if(Array.isArray(rc))recurrings=rc;
   const pp=await dbMetaGet('people');if(Array.isArray(pp))people=pp;
+  const ua=await dbMetaGet('preferredUpiApp');if(ua&&UPI_APPS[ua])preferredUpiApp=ua;
   const rf=await dbMetaGet('rewindFreq');if(rf==='year'||rf==='month')rewindFreq=rf;
   lastRewindPeriod=(await dbMetaGet('lastRewindPeriod'))||null;
   rewindFreqLabel();
