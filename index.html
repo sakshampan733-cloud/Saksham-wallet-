@@ -165,13 +165,27 @@ main{padding:8px 18px calc(var(--tabbar-h) + 30px);max-width:760px;margin:0 auto
   margin:20px 2px 8px;display:flex;justify-content:space-between;
 }
 .day-head .mono{font-size:11px}
+/* swipe-to-reveal: .entry-wrap clips, .entry-actions sits underneath and
+   .entry itself is what actually translates left to reveal them */
+.entry-wrap{position:relative;overflow:hidden;border-radius:14px;margin-bottom:8px}
+.entry-actions{
+  position:absolute;top:0;right:0;bottom:0;display:flex;z-index:0;
+}
+.ea-btn{
+  width:74px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;
+}
+.ea-btn .ea-ico{font-size:16px;line-height:1}
+.ea-hide{background:var(--muted)}   /* --ink inverts per theme; --muted stays mid-grey in both */
+.ea-delete{background:var(--neg)}
 .entry{
-  display:flex;align-items:center;gap:13px;
+  display:flex;align-items:center;gap:13px;position:relative;z-index:1;
   background:var(--card);border:1px solid var(--line);border-radius:14px;
-  padding:13px 14px;margin-bottom:8px;cursor:pointer;
+  padding:13px 14px;margin-bottom:0;cursor:pointer;touch-action:pan-y;
   animation:rowIn .45s cubic-bezier(.22,1,.36,1) backwards;
   transition:transform .18s ease, box-shadow .18s ease;
 }
+.entry-wrap.dragging .entry{transition:none}
 .entry:active{transform:scale(.985)}
 @keyframes rowIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
 .e-badge{
@@ -388,10 +402,14 @@ nav.tabbar{
   -webkit-backdrop-filter:blur(26px) saturate(180%);
   border:1px solid var(--glass-line);
   box-shadow:0 12px 40px rgba(0,0,0,.26), inset 0 1px 0 var(--glass-hi);
+  transition:transform .32s cubic-bezier(.22,1,.36,1), opacity .32s ease;
 }
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   nav.tabbar{background:var(--glass-solid)}
 }
+/* shrinks while the page is actively scrolling, settles back once it stops —
+   the same "get out of the way" motion Instagram's tab bar uses */
+nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
 .tab{
   flex:1;height:100%;border-radius:999px;min-width:0;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
@@ -1170,7 +1188,7 @@ nav.tabbar{
   <div class="sheet-body">
     <div class="search-bar">
       <span class="sb-ico">⌕</span>
-      <input class="search-input" id="qInput" placeholder="Item, category, account, person…"
+      <input class="search-input" id="qInput" placeholder="Item, category, account, person, date…"
              autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search">
       <button class="sb-clear" id="qClear" aria-label="Clear search">×</button>
       <button class="sb-done" id="qDone">Done</button>
@@ -1363,6 +1381,15 @@ function toast(msg){
 }
 window.addEventListener('error',e=>{try{toast('Error: '+(e.message||'something broke'));}catch(_){}});
 window.addEventListener('unhandledrejection',e=>{try{toast('Error: '+((e.reason&&e.reason.message)||e.reason||'async failure'));}catch(_){}});
+
+/* tab bar shrinks while the page is moving, settles back once it's still */
+let _tabbarScrollT=null;
+window.addEventListener('scroll',()=>{
+  const nav=document.querySelector('nav.tabbar');if(!nav)return;
+  nav.classList.add('scrolling');
+  clearTimeout(_tabbarScrollT);
+  _tabbarScrollT=setTimeout(()=>nav.classList.remove('scrolling'),160);
+},{passive:true});
 const _arm={};
 function armConfirm(key,msg){
   const t=Date.now();
@@ -1377,6 +1404,7 @@ function _syncScrollLock(){
 }
 function openSheet(id){
   const sh=$('#sheet'+id);if(!sh)return;
+  closeOpenSwipe();                       // don't leave a row swiped open behind the sheet
   $('#scrim'+id).classList.add('open');sh.classList.add('open');
   _syncScrollLock();
 }
@@ -1489,7 +1517,23 @@ function entryMeta(e){
   bits.push(new Date(e.ts).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'}));
   return bits.join(' \u00B7 ');
 }
+/* ---- swipe-to-reveal (Hide / Delete) ----
+   One row open at a time, tracked here so opening a new one or switching
+   tabs/sheets always closes whatever was left showing. */
+const SWIPE_ACTIONS_W=148;
+let _openSwipeEl=null;
+let _swipeLastDragEnd=0;                 // suppresses the click that ends a drag
+function closeOpenSwipe(){
+  if(!_openSwipeEl)return;
+  const inner=_openSwipeEl.querySelector('.entry');
+  if(inner)inner.style.transform='';
+  _openSwipeEl.classList.remove('open');
+  _openSwipeEl=null;
+}
+function swipeJustDragged(){return Date.now()-_swipeLastDragEnd<350;}
 function entryRow(e,ix){
+  const wrap=document.createElement('div');
+  wrap.className='entry-wrap';
   const d=document.createElement('div');
   d.className='entry';d.style.animationDelay=(Math.min(ix,8)*0.04)+'s';
   const cls=e.type==='in'?'in':(e.type==='other'?'other':'out');
@@ -1500,8 +1544,73 @@ function entryRow(e,ix){
     '<div class="e-main"><div class="e-title">'+esc(entryTitle(e))+ndTag+'</div>'+
     '<div class="e-meta">'+esc(entryMeta(e))+'</div></div>'+
     '<div class="e-amt mono '+cls+'">'+sign+'\u20B9'+Math.round(e.amount).toLocaleString('en-IN')+'</div>';
-  d.addEventListener('click',()=>openAdd(e.id));
-  return d;
+
+  const actions=document.createElement('div');actions.className='entry-actions';
+  actions.innerHTML=
+    '<button type="button" class="ea-btn ea-hide"><span class="ea-ico">'+(e.hidden?'\u25C9':'\u2298')+'</span>'+(e.hidden?'Unhide':'Hide')+'</button>'+
+    '<button type="button" class="ea-btn ea-delete"><span class="ea-ico">\u00D7</span>Delete</button>';
+  wrap.appendChild(actions);
+  wrap.appendChild(d);
+
+  let startX=0,startY=0,baseX=0,dragging=false,locked=null;
+  d.addEventListener('pointerdown',ev=>{
+    if(ev.pointerType==='mouse'&&ev.button!==0)return;
+    startX=ev.clientX;startY=ev.clientY;
+    baseX=wrap.classList.contains('open')?-SWIPE_ACTIONS_W:0;
+    dragging=true;locked=null;
+    try{d.setPointerCapture(ev.pointerId);}catch(_){}
+  });
+  d.addEventListener('pointermove',ev=>{
+    if(!dragging)return;
+    const dx=ev.clientX-startX, dy=ev.clientY-startY;
+    if(locked===null){
+      if(Math.abs(dx)<8&&Math.abs(dy)<8)return;             // still deciding intent
+      locked=Math.abs(dx)>Math.abs(dy)?'x':'y';
+      if(locked==='y'){dragging=false;return;}               // vertical: leave it to page scroll
+      if(_openSwipeEl&&_openSwipeEl!==wrap)closeOpenSwipe();
+      wrap.classList.add('dragging');
+    }
+    if(locked!=='x')return;
+    let next=baseX+dx;
+    next=Math.max(-SWIPE_ACTIONS_W-16,Math.min(0,next));     // small rubber-band past each end
+    d.style.transform='translateX('+next+'px)';
+  });
+  const finish=ev=>{
+    if(!dragging)return;
+    dragging=false;
+    wrap.classList.remove('dragging');
+    if(locked!=='x'){locked=null;return;}
+    const finalX=baseX+(ev.clientX-startX);
+    const shouldOpen=finalX<-SWIPE_ACTIONS_W*0.4;
+    d.style.transform=shouldOpen?'translateX(-'+SWIPE_ACTIONS_W+'px)':'';
+    wrap.classList.toggle('open',shouldOpen);
+    _openSwipeEl=shouldOpen?wrap:(_openSwipeEl===wrap?null:_openSwipeEl);
+    _swipeLastDragEnd=Date.now();
+    locked=null;
+  };
+  d.addEventListener('pointerup',finish);
+  d.addEventListener('pointercancel',finish);
+  d.addEventListener('click',()=>{
+    if(swipeJustDragged())return;                            // that click was the drag release, not a tap
+    if(wrap.classList.contains('open')){closeOpenSwipe();return;}
+    openAdd(e.id);
+  });
+
+  actions.querySelector('.ea-hide').addEventListener('click',async ev=>{
+    ev.stopPropagation();
+    _openSwipeEl=null;
+    e.hidden=!e.hidden;await dbPut(e);renderAll();snapshotSoon();
+    toast(e.hidden?'Hidden from view & totals':'Back in the ledger');
+  });
+  actions.querySelector('.ea-delete').addEventListener('click',async ev=>{
+    ev.stopPropagation();
+    if(!armConfirm('delSwipe'+e.id,'Tap Delete again to confirm'))return;
+    _openSwipeEl=null;
+    await dbDel(e.id);entries=entries.filter(x=>x.id!==e.id);renderAll();snapshotSoon();
+    toast('Deleted');
+  });
+
+  return wrap;
 }
 function dayLabel(ts){
   const d=new Date(ts), now=new Date();
@@ -1865,7 +1974,7 @@ function renderAcctList(){
     '<div class="ac-sub"><span class="ac-stat">Received<b class="mono">'+fmtSigned(allF.inAmt)+'</b></span>'+
     '<span class="ac-stat">Spent<b class="mono">'+fmtSigned(allF.outAmt)+'</b></span>'+
     '<span class="ac-stat">Accounts<b>'+accounts.length+'</b></span></div><span class="ac-arrow">→</span>';
-  all.addEventListener('click',()=>{acctSel='__all';acctView='detail';renderAccounts();window.scrollTo({top:0});});
+  all.addEventListener('click',()=>{window.scrollTo(0,0);acctSel='__all';acctView='detail';renderAccounts();});
   host.appendChild(all);
   if(!accounts.length){
     host.insertAdjacentHTML('beforeend','<div class="empty" style="margin-top:6px"><div class="e-mark">◱</div><p>No accounts yet. Create one — like "Japan Trip" or "Savings" — with + New account, then tag money into it when you record.</p></div>');
@@ -1878,7 +1987,7 @@ function renderAcctList(){
       '<div class="ac-sub"><span class="ac-stat">Received<b class="mono">'+fmtSigned(f.inAmt)+'</b></span>'+
       '<span class="ac-stat">Spent<b class="mono">'+fmtSigned(f.outAmt)+'</b></span>'+
       '<span class="ac-stat">Entries<b>'+f.cnt+'</b></span></div><span class="ac-arrow">→</span>';
-    c.addEventListener('click',()=>{acctSel=a.id;acctView='detail';renderAccounts();window.scrollTo({top:0});});
+    c.addEventListener('click',()=>{window.scrollTo(0,0);acctSel=a.id;acctView='detail';renderAccounts();});
     host.appendChild(c);
   });
 }
@@ -1925,7 +2034,7 @@ function renderAcctDetail(id){
   else { const wrap=document.createElement('div'); list.forEach((e,ix)=>wrap.appendChild(entryRow(e,ix))); body.appendChild(wrap); }
   applyPrivacy();
 }
-$('#btnAcctBack').addEventListener('click',()=>{acctView='list';acctSel=null;renderAccounts();window.scrollTo({top:0});});
+$('#btnAcctBack').addEventListener('click',()=>{window.scrollTo(0,0);acctView='list';acctSel=null;renderAccounts();});
 $('#btnAddAcct').addEventListener('click',()=>addAccountPrompt(id=>{acctSel=id;acctView='detail';renderAccounts();}));
 /* ================= layered settings =================
    Thirteen rows in one list meant a long scroll; they're grouped into six
@@ -1937,7 +2046,7 @@ function renderSettings(){
     p.classList.toggle('on',p.id==='setpage-'+settingsPage);
   });
 }
-function openSettingsPage(page){settingsPage=page;renderSettings();window.scrollTo({top:0});}
+function openSettingsPage(page){window.scrollTo(0,0);settingsPage=page;renderSettings();}
 document.querySelectorAll('.set-group').forEach(g=>{
   g.addEventListener('click',()=>openSettingsPage(g.dataset.page));
 });
@@ -1957,6 +2066,31 @@ $('#btnPrivacyRow').addEventListener('click',()=>{
    source, whose-money, account, the person paid, the wallet, and the amount. */
 const SEARCH_CAP=60;
 let _qTimer=null;
+/* every way a date might be typed, so "july", "14 jul", "2026-07-14",
+   "14/7/26", "friday", "yesterday" and "last month" all find the same rows */
+function searchDateText(ts){
+  const d=new Date(ts);
+  const dd=String(d.getDate()).padStart(2,'0'), mm=String(d.getMonth()+1).padStart(2,'0');
+  const yyyy=d.getFullYear(), yy=String(yyyy).slice(2);
+  const parts=[
+    d.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'}),   // 14 July 2026
+    d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}),                 // 14 Jul
+    d.toLocaleDateString('en-IN',{month:'long',year:'numeric'}),                 // July 2026
+    d.toLocaleDateString('en-IN',{weekday:'long'}),                              // Tuesday
+    yyyy+'-'+mm+'-'+dd, dd+'/'+mm+'/'+yyyy, dd+'/'+mm+'/'+yy,
+    dd+'-'+mm+'-'+yyyy, dd+'.'+mm+'.'+yyyy, String(yyyy)
+  ];
+  const dl=dayLabel(ts);                                                          // Today / Yesterday
+  if(dl)parts.push(dl);
+  const now=new Date(), cur=new Date(now.getFullYear(),now.getMonth(),1);
+  const em=new Date(d.getFullYear(),d.getMonth(),1);
+  const monthsAgo=(cur.getFullYear()-em.getFullYear())*12+(cur.getMonth()-em.getMonth());
+  if(monthsAgo===0)parts.push('this month');
+  else if(monthsAgo===1)parts.push('last month');
+  if(d.getFullYear()===now.getFullYear())parts.push('this year');
+  else if(d.getFullYear()===now.getFullYear()-1)parts.push('last year');
+  return parts.join(' ');
+}
 function searchFields(e){
   return [
     e.note||'',                                    // 0 — the item / what for
@@ -1967,7 +2101,8 @@ function searchFields(e){
     e.from?sourceLabel(e.from):'',                 // 5 — whose money
     e.acct?accountLabel(e.acct):'',                // 6 — account
     walletLabel(e.wallet),                         // 7 — cash / upi / card
-    String(Math.round(e.amount))                   // 8 — amount, ranked last
+    String(Math.round(e.amount)),                  // 8 — amount
+    searchDateText(e.ts)                           // 9 — date, ranked last
   ];
 }
 /* lower is better: the item name outranks a tag, and a match at the start of a
@@ -1980,6 +2115,9 @@ function searchScore(e,q){
     const s=String(f[i]).toLowerCase();
     const ix=s.indexOf(q);
     if(ix<0)continue;
+    /* the date blob holds many formats at once, so only accept matches that
+       start a token — otherwise "26" would hit every row via "2026" */
+    if(i===9&&ix>0&&!/[\s\-/.]/.test(s[ix-1]))continue;
     const base=i===0?0:(i<=2?3:6);
     const bump=ix===0?0:(/[\s\-·,]/.test(s[ix-1])?1:2);
     best=Math.min(best,base+bump);
@@ -1991,11 +2129,12 @@ function renderSearch(){
   const q=$('#qInput').value.trim().toLowerCase();
   const host=$('#qResults'), meta=$('#qMeta');
   $('#qClear').classList.toggle('on',!!q);
+  _openSwipeEl=null;                       // results are rebuilt below
   host.innerHTML='';
   if(!q){
     meta.textContent='';
     host.innerHTML='<div class="search-hint"><span class="sh-mark">⌕</span>'+
-      'Type a few letters. Searches the item, category, account, whose money it was, who you paid, and the amount.</div>';
+      'Type a few letters. Searches the item, category, account, whose money it was, who you paid, the amount, and the date — try “july”, “14 jul”, “yesterday” or “last month”.</div>';
     return;
   }
   const hits=[];
@@ -2018,7 +2157,12 @@ function renderSearch(){
   shown.forEach((h,ix)=>wrap.appendChild(entryRow(h.e,ix)));
   /* capture phase, so search is dismissed before entryRow's own handler opens
      the edit sheet — otherwise the two sheets stack on top of each other */
-  wrap.addEventListener('click',ev=>{if(ev.target.closest('.entry'))closeSheet('Search');},true);
+  wrap.addEventListener('click',ev=>{
+    if(swipeJustDragged())return;                          // drag release, not a tap
+    if(ev.target.closest('.entry-actions'))return;         // Hide/Delete stay in the sheet
+    if(ev.target.closest('.entry-wrap.open'))return;       // first tap just closes the row
+    if(ev.target.closest('.entry'))closeSheet('Search');
+  },true);
   host.appendChild(wrap);
   applyPrivacy();
 }
@@ -2197,11 +2341,17 @@ $('#btnDoPay').addEventListener('click',async ()=>{
   setTimeout(()=>{try{launchUpi(link);}catch(e){toast('Couldn’t open a UPI app — the entry is saved');}},350);
 });
 
-function renderAll(){renderHome();renderLedger();if($('#view-accounts'))renderAccounts();if($('#view-pay'))renderPay();applyPrivacy();}
+/* every render rebuilds the rows, so any open swipe now points at a detached node */
+function renderAll(){_openSwipeEl=null;renderHome();renderLedger();if($('#view-accounts'))renderAccounts();if($('#view-pay'))renderPay();applyPrivacy();}
 
 /* ================= tabs ================= */
 document.querySelectorAll('.tab').forEach(t=>{
   t.addEventListener('click',()=>{
+    /* scroll to top FIRST, while the outgoing view is still full height —
+       hiding a taller view before the scroll resets forces the browser to
+       clamp scrollTop mid-swap, which is what made the tab bar visibly jump */
+    window.scrollTo(0,0);
+    closeOpenSwipe();                    // don't leave a row swiped open on the tab you left
     document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
     $('#view-'+t.dataset.view).classList.add('active');
@@ -2210,7 +2360,6 @@ document.querySelectorAll('.tab').forEach(t=>{
     if(v==='accounts'){acctView='list';acctSel=null;renderAccounts();}
     if(v==='pay')renderPay();
     if(v==='settings'){settingsPage=null;renderSettings();}   // always land on the menu
-    window.scrollTo({top:0});
   });
 });
 $('#btnSeeAll').addEventListener('click',()=>{
