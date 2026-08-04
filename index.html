@@ -365,6 +365,37 @@ body.settled .entry,body.settled .stat{animation:none}
   transition:border-color .25s;
 }
 .amount-input:focus{border-color:var(--neg)}
+/* tappable currency badge sitting inside the amount field */
+.amount-wrap .cur-pick{
+  display:flex;align-items:center;justify-content:center;gap:3px;
+  min-width:34px;height:34px;padding:0 7px;border-radius:9px;
+  border:1px solid var(--line-strong);background:var(--card-2);
+  color:var(--ink);font-size:15px;cursor:pointer;
+  transition:border-color .2s, transform .12s;
+}
+.amount-wrap .cur-pick:active{transform:translateY(-50%) scale(.94)}
+.amount-wrap .cur-pick.on{border-color:var(--neg);color:var(--neg)}
+.amount-input{padding-left:60px}
+.fx-note{
+  font-size:11px;color:var(--muted);margin-top:7px;padding-left:2px;
+  line-height:1.45;min-height:0;
+}
+.fx-note.on{color:var(--neg)}
+.cur-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:11px;
+  max-height:186px;overflow-y:auto;padding:2px;
+}
+.cur-opt{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  min-height:46px;padding:6px 3px;border-radius:10px;
+  border:1.5px solid var(--line-strong);background:var(--card);
+  font-size:11px;font-weight:800;letter-spacing:.03em;
+  transition:border-color .2s, transform .12s;
+}
+.cur-opt:active{transform:scale(.94)}
+.cur-opt.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.cur-opt .co-sym{font-size:13px;opacity:.75}
+.cur-opt.on .co-sym{opacity:.9}
 .opt-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .opt-grid.four{grid-template-columns:repeat(4,1fr)}
 .opt{
@@ -846,6 +877,14 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
           <div>Recurring payments<small>Subscriptions and regular bills. The wallet asks to log each one when it's due.</small></div>
           <span class="arrow">→</span>
         </div>
+        <div class="set-row" id="btnBaseCur">
+          <div>Currency<small id="baseCurSub">Everything is totalled in this. Entries can still be recorded in any currency.</small></div>
+          <span class="arrow" id="baseCurVal">INR</span>
+        </div>
+        <div class="set-row" id="btnFxRefresh">
+          <div>Exchange rates<small id="fxSub">Checking…</small></div>
+          <span class="arrow">↻</span>
+        </div>
       </div>
     </div>
 
@@ -970,9 +1009,11 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
     <div class="field">
       <label>Amount</label>
       <div class="amount-wrap">
-        <span class="cur">₹</span>
+        <button type="button" class="cur cur-pick" id="fCurBtn">₹</button>
         <input class="amount-input" id="fAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
       </div>
+      <div class="fx-note" id="fxNote"></div>
+      <div class="cur-grid" id="fCurGrid" style="display:none"></div>
     </div>
 
     <div class="rcpt" id="rcptBox">
@@ -1183,6 +1224,17 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
   </div>
 </div>
 
+<div class="scrim" id="scrimBaseCur"></div>
+<div class="sheet" id="sheetBaseCur">
+  <button class="sheet-close" data-close="BaseCur" aria-label="Close">×</button>
+  <div class="sheet-grip"></div>
+  <div class="sheet-body">
+    <div class="sheet-title">Currency</div>
+    <div class="hint" style="margin-top:-6px">Your balances, stats and Rewind are all totalled in this currency. Entries you've already recorded keep the rate they were saved at — nothing is re-valued.</div>
+    <div class="cur-grid" id="baseCurGrid" style="max-height:none;margin-top:14px"></div>
+  </div>
+</div>
+
 <div class="scrim" id="scrimSearch"></div>
 <div class="sheet sheet-top" id="sheetSearch">
   <div class="sheet-body">
@@ -1327,10 +1379,12 @@ function dbSnapDel(ts){return new Promise(res=>{if(!db)return res();try{const tx
 /* ================= state & helpers ================= */
 let entries=[];           // {id,ts,type,wallet:cash|upi|credit|debit,amount,note,cat?,source?,who?,from?,acct?,hidden?}
 // ===== version + what's-new =====
-const APP_VERSION='2.7';
+const APP_VERSION='2.8';
 const WHATS_NEW={
-  version:'2.7',
+  version:'2.8',
   items:[
+    'Multi-currency — tap the ₹ badge on the amount field to record a spend in dollars, yen, baht or 19 other currencies. It converts at that day’s rate, shows both figures on the entry, and your totals stay in one currency (change it under Settings → Money & bills).',
+    'Swipe any entry left for Hide and Delete, and search by date — try “yesterday”, “july” or “last month”.',
     'Search — the ⌕ button in the header. Type a few letters and it finds any entry by item, category, account, whose money it was, who you paid, or the amount.',
     'New Pay tab — save the people you send money to, then pay them from here. The wallet records the entry and hands the amount to your own UPI app; you still approve it there. It never moves money itself.',
     'Scan a receipt on the New entry screen — take a photo of the bill or pick one from your gallery, and the amount, shop and date are read off it for you to check before saving. Runs entirely on your phone.',
@@ -1367,13 +1421,121 @@ let privacyHidden=false, pinCode=null, pinOK=false;
 let recurrings=[];   // {id,name,amount,freq:'month'|'week'|'day',day,wallet,from,cat,acct,startTs,lastPaidTs}
 let rfEditingId=null, rfFreq='month', rfWallet='cash', rfFrom='', rfCat='', rfAcct='';
 let dueQueue=[], dueIdx=0;
-let fWallet='cash', fSource='pocket', fCat='', fFrom='', fAcct='', fNoDeduct=false;
+let fWallet='cash', fSource='pocket', fCat='', fFrom='', fAcct='', fNoDeduct=false, fCur='INR';
 
 const $=s=>document.querySelector(s);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmt=v=>{const n=Math.round(Number(v)||0);return '\u20B9'+Math.abs(n).toLocaleString('en-IN')+(n<0?' \u2212':'');};
-const fmtSigned=v=>(v<0?'\u2212':'')+'\u20B9'+Math.abs(Math.round(v)).toLocaleString('en-IN');
+/* ================= currency =================
+   The wallet settles in ONE base currency. An entry may be recorded in any
+   currency; `fxRate` converts it to the base and `baseAmount` is the canonical
+   figure. Every balance calculation reads baseAmount via baseOf() \u2014 never
+   `amount`. That single rule is what keeps FX out of the balance math. */
+const CURRENCIES={
+  INR:{sym:'\u20B9',dec:0,locale:'en-IN',name:'Indian rupee'},
+  USD:{sym:'$',dec:2,locale:'en-US',name:'US dollar'},
+  EUR:{sym:'\u20AC',dec:2,locale:'de-DE',name:'Euro'},
+  GBP:{sym:'\u00A3',dec:2,locale:'en-GB',name:'Pound sterling'},
+  JPY:{sym:'\u00A5',dec:0,locale:'ja-JP',name:'Japanese yen'},
+  AED:{sym:'AED',dec:2,locale:'en-AE',name:'UAE dirham'},
+  SGD:{sym:'S$',dec:2,locale:'en-SG',name:'Singapore dollar'},
+  THB:{sym:'\u0E3F',dec:2,locale:'th-TH',name:'Thai baht'},
+  AUD:{sym:'A$',dec:2,locale:'en-AU',name:'Australian dollar'},
+  CAD:{sym:'C$',dec:2,locale:'en-CA',name:'Canadian dollar'},
+  CHF:{sym:'CHF',dec:2,locale:'de-CH',name:'Swiss franc'},
+  CNY:{sym:'\u00A5',dec:2,locale:'zh-CN',name:'Chinese yuan'},
+  HKD:{sym:'HK$',dec:2,locale:'en-HK',name:'Hong Kong dollar'},
+  MYR:{sym:'RM',dec:2,locale:'ms-MY',name:'Malaysian ringgit'},
+  NPR:{sym:'NPR',dec:2,locale:'en-IN',name:'Nepalese rupee'},
+  LKR:{sym:'LKR',dec:2,locale:'en-IN',name:'Sri Lankan rupee'},
+  IDR:{sym:'Rp',dec:0,locale:'id-ID',name:'Indonesian rupiah'},
+  VND:{sym:'\u20AB',dec:0,locale:'vi-VN',name:'Vietnamese dong'},
+  KRW:{sym:'\u20A9',dec:0,locale:'ko-KR',name:'South Korean won'},
+  NZD:{sym:'NZ$',dec:2,locale:'en-NZ',name:'New Zealand dollar'},
+  SAR:{sym:'SAR',dec:2,locale:'en-SA',name:'Saudi riyal'},
+  ZAR:{sym:'R',dec:2,locale:'en-ZA',name:'South African rand'}
+};
+const CUR_CODES=Object.keys(CURRENCIES);
+/* value of ONE unit of each currency in INR \u2014 approximate, bundled so that
+   conversion works offline and on the very first run before any fetch */
+const FALLBACK_RATES={
+  INR:1, USD:88.5, EUR:95.8, GBP:112.4, JPY:0.57, AED:24.1, SGD:65.3, THB:2.55,
+  AUD:57.2, CAD:63.1, CHF:102.6, CNY:12.2, HKD:11.3, MYR:19.8, NPR:0.63,
+  LKR:0.29, IDR:0.0053, VND:0.0035, KRW:0.062, NZD:52.4, SAR:23.6, ZAR:4.9
+};
+let RATES=Object.assign({},FALLBACK_RATES);
+let baseCur='INR';
+let fxUpdatedAt=0;
+function curMeta(code){return CURRENCIES[code]||CURRENCIES.INR;}
+function rateOf(code){const r=RATES[code];return (typeof r==='number'&&r>0)?r:(FALLBACK_RATES[code]||1);}
+/* how many units of `to` one unit of `from` buys */
+function fxRateBetween(from,to){
+  if(from===to)return 1;
+  return rateOf(from)/rateOf(to);
+}
+function roundMoney(n,code){
+  const d=curMeta(code).dec;
+  const p=Math.pow(10,d);
+  return Math.round((Number(n)||0)*p)/p;
+}
+function fmtCur(v,code,opts){
+  const c=curMeta(code||baseCur), o=opts||{};
+  const n=Number(v)||0;
+  const abs=Math.abs(n);
+  const txt=abs.toLocaleString(c.locale,{minimumFractionDigits:c.dec,maximumFractionDigits:c.dec});
+  const sign=n<0?'\u2212':(o.plus?'+':'');
+  return sign+c.sym+txt;
+}
+/* the app-wide money formatters render in the BASE currency, so every existing
+   call site picks up the right symbol without changing */
+const fmt=v=>fmtCur(v,baseCur);
+const fmtSigned=v=>fmtCur(v,baseCur);
+/* THE rule: all balance math goes through this, never e.amount.
+   `baseAmount` is always stored in INR — a fixed pivot, captured at save
+   time so history never re-values. If the display currency isn't INR, the
+   pivot is re-expressed at today's rate purely for viewing; nothing stored
+   ever changes when you flip the base back and forth. */
+function baseOf(e){
+  if(!e)return 0;
+  const pivot=(typeof e.baseAmount==='number')?e.baseAmount:(Number(e.amount)||0);
+  return baseCur==='INR'?pivot:pivot/rateOf(baseCur);
+}
+function curOf(e){return (e&&e.cur)||baseCur;}
+function isForeign(e){return curOf(e)!==baseCur;}
+
+/* ---- live rates: two no-key CORS endpoints, then the bundled table ---- */
+async function fetchRates(){
+  const norm=obj=>{
+    const out={INR:1};
+    for(const code of CUR_CODES){
+      if(code==='INR')continue;
+      const per=obj[code.toLowerCase()]!==undefined?obj[code.toLowerCase()]:obj[code];
+      if(typeof per==='number'&&per>0)out[code]=1/per;   // API gives units-per-INR; we store INR-per-unit
+    }
+    return out;
+  };
+  try{
+    const r=await fetch('https://open.er-api.com/v6/latest/INR');
+    const j=await r.json();
+    if(j&&j.rates&&j.result!=='error'){const t=norm(j.rates);if(Object.keys(t).length>4)return t;}
+  }catch(_){}
+  try{
+    const r=await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/inr.json');
+    const j=await r.json();
+    if(j&&j.inr){const t=norm(j.inr);if(Object.keys(t).length>4)return t;}
+  }catch(_){}
+  return null;
+}
+async function refreshRates(force){
+  /* once a day is plenty, and a stale table still converts fine */
+  if(!force&&fxUpdatedAt&&Date.now()-fxUpdatedAt<24*3600*1000)return false;
+  const t=await fetchRates();
+  if(!t)return false;
+  RATES=Object.assign({},FALLBACK_RATES,t);
+  fxUpdatedAt=Date.now();
+  await dbMetaPut('fx',{rates:RATES,at:fxUpdatedAt});
+  return true;
+}
 let toastTimer=null;
 function toast(msg){
   const t=$('#toast');t.textContent=msg;t.classList.add('show');
@@ -1454,7 +1616,7 @@ function sums(){
   for(const e of visible()){
     if(e.noDeduct)continue;                 /* not your money — never touched your balance */
     const sign=e.type==='in'?1:-1;
-    if(e.wallet==='cash')cash+=sign*e.amount;else digital+=sign*e.amount;
+    if(e.wallet==='cash')cash+=sign*baseOf(e);else digital+=sign*baseOf(e);
   }
   return {cash,upi:digital,total:cash+digital};
 }
@@ -1464,7 +1626,7 @@ function accountStats(){
   for(const e of visible()){
     if(!e.acct)continue;
     const a=m[e.acct]||(m[e.acct]={inAmt:0,outAmt:0});
-    if(e.type==='in')a.inAmt+=e.amount; else if(e.type==='out')a.outAmt+=e.amount;
+    if(e.type==='in')a.inAmt+=baseOf(e); else if(e.type==='out')a.outAmt+=baseOf(e);
   }
   return m;
 }
@@ -1474,10 +1636,10 @@ function monthStats(){
   for(const e of visible()){
     const d=new Date(e.ts);
     if(d.getMonth()!==m||d.getFullYear()!==y)continue;
-    if(e.noDeduct){ tracked+=e.amount; continue; }   /* logged, but never your money */
-    if(e.type==='out')spent+=e.amount;
-    else if(e.type==='other')others+=e.amount;
-    else inc+=e.amount;
+    if(e.noDeduct){ tracked+=baseOf(e); continue; }   /* logged, but never your money */
+    if(e.type==='out')spent+=baseOf(e);
+    else if(e.type==='other')others+=baseOf(e);
+    else inc+=baseOf(e);
   }
   return {spent,others,inc,tracked};
 }
@@ -1507,7 +1669,11 @@ function entryTitle(e){
 }
 function entryMeta(e){
   const w=walletLabel(e.wallet);
-  const bits=[w];
+  const bits=[];
+  /* a foreign entry leads with what was actually on the bill, so the converted
+     figure in the amount column is never mistaken for the price you paid */
+  if(isForeign(e))bits.push(fmtCur(e.amount,curOf(e)));
+  bits.push(w);
   if(e.type==='in'){bits.push(sourceLabel(e.source));}
   if(e.type==='out'&&e.cat)bits.push(e.cat);
   if(e.type==='out'&&e.from){bits.push('from '+sourceLabel(e.from));}
@@ -1543,7 +1709,7 @@ function entryRow(e,ix){
   d.innerHTML='<div class="e-badge '+cls+'">'+sym+'</div>'+
     '<div class="e-main"><div class="e-title">'+esc(entryTitle(e))+ndTag+'</div>'+
     '<div class="e-meta">'+esc(entryMeta(e))+'</div></div>'+
-    '<div class="e-amt mono '+cls+'">'+sign+'\u20B9'+Math.round(e.amount).toLocaleString('en-IN')+'</div>';
+    '<div class="e-amt mono '+cls+'">'+sign+fmtCur(baseOf(e),baseCur).replace(/^\u2212/,'')+'</div>';
 
   const actions=document.createElement('div');actions.className='entry-actions';
   actions.innerHTML=
@@ -1685,7 +1851,7 @@ function srcBars(title,pairs,total){
 function accountCardHTML(scoped){
   if(!accounts.length)return '';
   const m={};
-  scoped.forEach(e=>{if(!e.acct)return;const a=m[e.acct]||(m[e.acct]={inAmt:0,outAmt:0});if(e.type==='in')a.inAmt+=e.amount;else if(e.type==='out')a.outAmt+=e.amount;});
+  scoped.forEach(e=>{if(!e.acct)return;const a=m[e.acct]||(m[e.acct]={inAmt:0,outAmt:0});if(e.type==='in')a.inAmt+=baseOf(e);else if(e.type==='out')a.outAmt+=baseOf(e);});
   const rows=accounts.filter(a=>m[a.id]).map(a=>({label:a.label,...m[a.id],net:m[a.id].inAmt-m[a.id].outAmt}));
   if(!rows.length)return '';
   rows.sort((x,y)=>(y.inAmt+y.outAmt)-(x.inAmt+x.outAmt));
@@ -1703,13 +1869,13 @@ function renderPeriodSummary(b){
   const card=document.createElement('div');card.className='period-card';
   const head=cnt=>'<div class="pc-range"><span>'+esc(b.label)+'</span><span class="pc-count">'+cnt+(cnt===1?' entry':' entries')+'</span></div>';
   const agg=(list,keyFn,labelFn)=>{
-    const m={};list.forEach(e=>{const k=keyFn(e);if(!m[k])m[k]={label:labelFn(k,e),amt:0,cnt:0};m[k].amt+=e.amount;m[k].cnt++;});
+    const m={};list.forEach(e=>{const k=keyFn(e);if(!m[k])m[k]={label:labelFn(k,e),amt:0,cnt:0};m[k].amt+=baseOf(e);m[k].cnt++;});
     return Object.values(m).sort((x,y)=>y.amt-x.amt);
   };
   let html='';
   if(ledgerFilter==='out'){
     const outs=scoped.filter(e=>e.type==='out');
-    const total=outs.reduce((x,e)=>x+e.amount,0);
+    const total=outs.reduce((x,e)=>x+baseOf(e),0);
     html=head(outs.length)+
       '<div class="pc-figs"><div class="pc-fig"><div class="pcf-k">Spent (yours)</div><div class="pcf-v spent mono">'+fmtSigned(total)+'</div></div>'+
       '<div class="pc-fig"><div class="pcf-k">Avg / entry</div><div class="pcf-v mono">'+fmtSigned(outs.length?Math.round(total/outs.length):0)+'</div></div></div>';
@@ -1720,7 +1886,7 @@ function renderPeriodSummary(b){
     html+=accountCardHTML(scoped);
   } else if(ledgerFilter==='in'){
     const ins=scoped.filter(e=>e.type==='in');
-    const total=ins.reduce((x,e)=>x+e.amount,0);
+    const total=ins.reduce((x,e)=>x+baseOf(e),0);
     html=head(ins.length)+
       '<div class="pc-figs"><div class="pc-fig"><div class="pcf-k">Received</div><div class="pcf-v mono">'+fmtSigned(total)+'</div></div>'+
       '<div class="pc-fig"><div class="pcf-k">Accounts</div><div class="pcf-v mono">'+new Set(ins.map(e=>e.source||'other')).size+'</div></div></div>';
@@ -1728,7 +1894,7 @@ function renderPeriodSummary(b){
     if(pairs.length)html+=srcBars('Received by account',pairs,total);
   } else if(ledgerFilter==='other'){
     const os=scoped.filter(e=>e.type==='other');
-    const total=os.reduce((x,e)=>x+e.amount,0);
+    const total=os.reduce((x,e)=>x+baseOf(e),0);
     html=head(os.length)+
       '<div class="pc-figs"><div class="pc-fig"><div class="pcf-k">Paid for others</div><div class="pcf-v mono" style="color:var(--violet)">'+fmtSigned(total)+'</div></div>'+
       '<div class="pc-fig"><div class="pcf-k">People</div><div class="pcf-v mono">'+new Set(os.map(e=>e.who||'?')).size+'</div></div></div>'+
@@ -1738,9 +1904,9 @@ function renderPeriodSummary(b){
   } else {
     let spent=0,received=0,others=0;const bySrc={};
     for(const e of scoped){
-      if(e.type==='out')spent+=e.amount;
-      else if(e.type==='other')others+=e.amount;
-      else {received+=e.amount;const k=e.source||'other';bySrc[k]=(bySrc[k]||0)+e.amount;}
+      if(e.type==='out')spent+=baseOf(e);
+      else if(e.type==='other')others+=baseOf(e);
+      else {received+=baseOf(e);const k=e.source||'other';bySrc[k]=(bySrc[k]||0)+baseOf(e);}
     }
     html=head(scoped.length)+
       '<div class="pc-figs"><div class="pc-fig"><div class="pcf-k">Spent</div><div class="pcf-v spent mono">'+fmtSigned(spent)+'</div></div>'+
@@ -1790,7 +1956,7 @@ function renderLedger(){
   list.forEach((e,ix)=>{
     const dl=dayLabel(e.ts);
     if(dl!==curDay){flush();curDay=dl;}
-    if(!e.noDeduct) dayTotal+=(e.type==='in'?1:-1)*e.amount;
+    if(!e.noDeduct) dayTotal+=(e.type==='in'?1:-1)*baseOf(e);
     pending.push(entryRow(e,ix));
   });
   flush();
@@ -1851,7 +2017,7 @@ function renderDueCard(){
   if(r.cat)tags.push(r.cat);
   if(r.acct)tags.push(accountLabel(r.acct));
   $('#dueCard').innerHTML='<div class="due-card"><div class="dc-name">'+esc(r.name)+'</div>'+
-    '<div class="dc-amt">₹'+Math.round(r.amount).toLocaleString('en-IN')+'</div>'+
+    '<div class="dc-amt">'+esc(fmtCur(r.amount,r.cur||baseCur))+'</div>'+
     '<div class="dc-when">Due '+new Date(item.ts).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})+'</div>'+
     '<div class="dc-tags">'+tags.map(esc).join(' · ')+'</div></div>';
 }
@@ -1863,7 +2029,9 @@ async function dueAdvance(){
 $('#dueLog').addEventListener('click',async ()=>{
   const item=dueQueue[dueIdx]; if(!item)return;
   const r=item.r;
-  const rec={id:uid(),ts:item.ts,type:'out',wallet:r.wallet,amount:r.amount,note:r.name};
+  const rc=r.cur||baseCur, rfx=fxRateBetween(rc,'INR');
+  const rec={id:uid(),ts:item.ts,type:'out',wallet:r.wallet,amount:r.amount,note:r.name,
+             cur:rc,fxRate:rfx,baseAmount:roundMoney(r.amount*rfx,'INR')};
   if(r.cat)rec.cat=r.cat;
   if(r.from)rec.from=r.from;
   if(r.acct)rec.acct=r.acct;
@@ -1886,7 +2054,7 @@ function renderRecurList(){
   recurrings.forEach(r=>{
     const freqTxt=r.freq==='month'?('Monthly · day '+(r.day||1)):(r.freq==='week'?'Weekly':'Daily');
     const row=document.createElement('div');row.className='recur-row';
-    row.innerHTML='<div class="rr-main"><div class="rr-name">'+esc(r.name)+'</div><div class="rr-sub">'+freqTxt+(r.cat?' · '+esc(r.cat):'')+'</div></div><div class="rr-amt">₹'+Math.round(r.amount).toLocaleString('en-IN')+'</div>';
+    row.innerHTML='<div class="rr-main"><div class="rr-name">'+esc(r.name)+'</div><div class="rr-sub">'+freqTxt+(r.cat?' · '+esc(r.cat):'')+'</div></div><div class="rr-amt">'+esc(fmtCur(r.amount,r.cur||baseCur))+'</div>';
     row.addEventListener('click',()=>openRForm(r.id));
     host.appendChild(row);
   });
@@ -1959,7 +2127,7 @@ function acctFigures(id){
   let inAmt=0,outAmt=0,cnt=0;
   for(const e of visible()){
     if(id==='__all'){ if(!e.acct)continue; } else if(e.acct!==id) continue;
-    if(e.type==='in')inAmt+=e.amount; else if(e.type==='out')outAmt+=e.amount;
+    if(e.type==='in')inAmt+=baseOf(e); else if(e.type==='out')outAmt+=baseOf(e);
     cnt++;
   }
   return {inAmt,outAmt,net:inAmt-outAmt,cnt};
@@ -2003,11 +2171,11 @@ function renderAcctDetail(id){
     '<div class="ah-fig"><div class="ahf-k">Spent</div><div class="ahf-v">'+fmtSigned(f.outAmt)+'</div></div>'+
     '<div class="ah-fig"><div class="ahf-k">Entries</div><div class="ahf-v">'+f.cnt+'</div></div></div></div>';
   // breakdowns
-  const agg=(arr,keyFn,labelFn)=>{const m={};arr.forEach(e=>{const k=keyFn(e);if(!m[k])m[k]={label:labelFn(k),amt:0,cnt:0};m[k].amt+=e.amount;m[k].cnt++;});return Object.values(m).sort((x,y)=>y.amt-x.amt);};
+  const agg=(arr,keyFn,labelFn)=>{const m={};arr.forEach(e=>{const k=keyFn(e);if(!m[k])m[k]={label:labelFn(k),amt:0,cnt:0};m[k].amt+=baseOf(e);m[k].cnt++;});return Object.values(m).sort((x,y)=>y.amt-x.amt);};
   const outs=list.filter(e=>e.type==='out');
   const ins=list.filter(e=>e.type==='in');
-  const spentTot=outs.reduce((x,e)=>x+e.amount,0);
-  const recdTot=ins.reduce((x,e)=>x+e.amount,0);
+  const spentTot=outs.reduce((x,e)=>x+baseOf(e),0);
+  const recdTot=ins.reduce((x,e)=>x+baseOf(e),0);
   const card=document.createElement('div');card.className='period-card';
   let bhtml='';
   if(ins.length){const p=agg(ins,e=>e.source||'other',k=>sourceLabel(k));bhtml+=srcBars('Received from',p,recdTot);}
@@ -2057,6 +2225,50 @@ $('#btnPeopleJump').addEventListener('click',()=>{
   document.querySelector('.tab[data-view="pay"]').click();
 });
 $('#btnAbout').addEventListener('click',showWhatsNew);
+
+/* ---- base currency + rate freshness ---- */
+function baseCurLabel(){
+  const v=$('#baseCurVal');if(v)v.textContent=baseCur;
+  const s=$('#baseCurSub');
+  if(s)s.textContent=curMeta(baseCur).name+' ('+curMeta(baseCur).sym+') — everything is totalled in this. Entries can still be recorded in any currency.';
+  fxLabel();
+}
+function fxLabel(){
+  const s=$('#fxSub');if(!s)return;
+  if(!fxUpdatedAt){s.textContent='Using the built-in table. Tap to fetch live rates.';return;}
+  const mins=Math.round((Date.now()-fxUpdatedAt)/60000);
+  const when=mins<2?'just now':(mins<60?mins+' minutes ago':
+    (mins<1440?Math.round(mins/60)+' hours ago':Math.round(mins/1440)+' days ago'));
+  s.textContent='Live rates, updated '+when+'. Tap to refresh.';
+}
+function renderBaseCurGrid(){
+  const g=$('#baseCurGrid');if(!g)return;
+  g.innerHTML='';
+  CUR_CODES.forEach(code=>{
+    const c=curMeta(code);
+    const b=document.createElement('button');
+    b.type='button';b.className='cur-opt'+(baseCur===code?' on':'');
+    b.innerHTML='<span class="co-sym">'+esc(c.sym)+'</span>'+esc(code);
+    b.title=c.name;
+    b.addEventListener('click',async ()=>{
+      if(code===baseCur){closeSheet('BaseCur');return;}
+      baseCur=code;
+      await dbMetaPut('baseCur',baseCur);
+      baseCurLabel();renderBaseCurGrid();renderAll();
+      closeSheet('BaseCur');
+      toast('Totals now in '+baseCur);
+    });
+    g.appendChild(b);
+  });
+}
+$('#btnBaseCur').addEventListener('click',()=>{renderBaseCurGrid();openSheet('BaseCur');});
+$('#scrimBaseCur').addEventListener('click',()=>closeSheet('BaseCur'));
+$('#btnFxRefresh').addEventListener('click',async ()=>{
+  $('#fxSub').textContent='Fetching…';
+  const ok=await refreshRates(true);
+  fxLabel();
+  toast(ok?'Rates updated':'Couldn’t reach the rate service — using the last known table');
+});
 $('#btnPrivacyRow').addEventListener('click',()=>{
   privacyHidden=!privacyHidden;dbMetaPut('privacyHidden',privacyHidden);applyPrivacy();
 });
@@ -2101,7 +2313,8 @@ function searchFields(e){
     e.from?sourceLabel(e.from):'',                 // 5 — whose money
     e.acct?accountLabel(e.acct):'',                // 6 — account
     walletLabel(e.wallet),                         // 7 — cash / upi / card
-    String(Math.round(e.amount)),                  // 8 — amount
+    String(Math.round(e.amount))+' '+String(Math.round(baseOf(e)))+' '+
+      (isForeign(e)?curOf(e)+' '+curMeta(curOf(e)).name:''),   // 8 — amount + currency
     searchDateText(e.ts)                           // 9 — date, ranked last
   ];
 }
@@ -2150,7 +2363,7 @@ function renderSearch(){
     return;
   }
   const shown=hits.slice(0,SEARCH_CAP);
-  const net=hits.reduce((n,h)=>n+(h.e.type==='in'?h.e.amount:-h.e.amount),0);
+  const net=hits.reduce((n,h)=>n+(h.e.type==='in'?baseOf(h.e):-baseOf(h.e)),0);
   meta.textContent=hits.length+(hits.length===1?' match':' matches')+
     (hits.length>SEARCH_CAP?' · first '+SEARCH_CAP:'')+' · net '+fmtSigned(net);
   const wrap=document.createElement('div');
@@ -2251,7 +2464,7 @@ function personFigures(id){
   let paid=0,cnt=0,last=0;
   for(const e of visible()){
     if(e.personId!==id||e.type!=='out')continue;
-    paid+=e.amount;cnt++;if(e.ts>last)last=e.ts;
+    paid+=baseOf(e);cnt++;if(e.ts>last)last=e.ts;
   }
   return {paid,cnt,last};
 }
@@ -2465,10 +2678,51 @@ function fromDateInput(v,fallbackTs){
   const d=new Date(parts[0],parts[1]-1,parts[2],base.getHours(),base.getMinutes(),base.getSeconds());
   return d.getTime();
 }
+/* ---- currency picker on the Add sheet ---- */
+function renderCurGrid(){
+  const g=$('#fCurGrid');if(!g)return;
+  g.innerHTML='';
+  /* base first, then the rest — the one you use most is always the first tap */
+  const order=[baseCur].concat(CUR_CODES.filter(c=>c!==baseCur));
+  order.forEach(code=>{
+    const c=curMeta(code);
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='cur-opt'+(fCur===code?' on':'');
+    b.innerHTML='<span class="co-sym">'+esc(c.sym)+'</span>'+esc(code);
+    b.title=c.name;
+    b.addEventListener('click',()=>{
+      fCur=code;
+      $('#fCurBtn').textContent=curMeta(fCur).sym;
+      $('#fCurGrid').style.display='none';
+      $('#fCurBtn').classList.remove('on');
+      renderCurGrid();updateFxNote();
+    });
+    g.appendChild(b);
+  });
+  $('#fCurBtn').textContent=curMeta(fCur).sym;
+}
+function fmtRate(rate,code){
+  /* a unit rate needs real precision — ₹2.85, not a rounded ₹3 */
+  const sym=curMeta(code).sym;
+  const digits=rate>=100?0:(rate>=1?2:4);
+  return sym+rate.toLocaleString(curMeta(code).locale,{minimumFractionDigits:digits,maximumFractionDigits:digits});
+}
+function updateFxNote(){
+  const el=$('#fxNote');if(!el)return;
+  if(fCur===baseCur){el.textContent='';el.classList.remove('on');return;}
+  const amt=parseFloat(String($('#fAmt').value).replace(/[^\d.]/g,''))||0;
+  const rate=fxRateBetween(fCur,baseCur);
+  el.classList.add('on');
+  el.textContent=amt>0
+    ? fmtCur(amt,fCur)+' ≈ '+fmtCur(roundMoney(amt*rate,baseCur),baseCur)+
+      '  ·  1 '+fCur+' = '+fmtRate(rate,baseCur)
+    : '1 '+fCur+' = '+fmtRate(rate,baseCur)+' — recorded in '+baseCur+' at this rate.';
+}
 function openAdd(id){
   if(id){
     const en=entries.find(x=>x.id===id);if(!en)return;
-    editingId=id;addType=en.type;fWallet=en.wallet;fSource=en.source||'pocket';fCat=en.cat||'';fFrom=en.from||'';fAcct=en.acct||'';fNoDeduct=!!en.noDeduct;
+    editingId=id;addType=en.type;fWallet=en.wallet;fSource=en.source||'pocket';fCat=en.cat||'';fFrom=en.from||'';fAcct=en.acct||'';fNoDeduct=!!en.noDeduct;fCur=curOf(en);
     $('#addTitle').textContent='Edit entry';
     $('#fAmt').value=String(en.amount);
     $('#fNote').value=en.note||'';
@@ -2478,7 +2732,7 @@ function openAdd(id){
     $('#btnHideEntry').textContent=en.hidden?'Unhide':'Hide';
     $('#fDate').value=toDateInput(en.ts);
   } else {
-    editingId=null;addType='out';fWallet='cash';fSource='pocket';fCat='';fFrom='';fAcct='';fNoDeduct=false;
+    editingId=null;addType='out';fWallet='cash';fSource='pocket';fCat='';fFrom='';fAcct='';fNoDeduct=false;fCur=baseCur;
     $('#addTitle').textContent='New entry';
     $('#fAmt').value='';$('#fNote').value='';$('#fWho').value='';
     $('#btnDelEntry').style.display='none';
@@ -2486,12 +2740,21 @@ function openAdd(id){
     $('#fDate').value=toDateInput(Date.now());
   }
   rcptBusy(false);rcptStatus('');
+  $('#fCurGrid').style.display='none';$('#fCurBtn').classList.remove('on');
+  renderCurGrid();updateFxNote();
   refreshAddForm();
   openSheet('Add');
   if(!id)setTimeout(()=>{try{$('#fAmt').focus();}catch(e){}},350);
 }
 $('#fabAdd').addEventListener('click',()=>openAdd(null));
 $('#scrimAdd').addEventListener('click',()=>closeSheet('Add'));
+$('#fCurBtn').addEventListener('click',()=>{
+  const g=$('#fCurGrid'), showing=g.style.display!=='none';
+  g.style.display=showing?'none':'grid';
+  $('#fCurBtn').classList.toggle('on',!showing);
+  if(!showing)renderCurGrid();
+});
+$('#fAmt').addEventListener('input',updateFxNote);
 $('#btnSaveEntry').addEventListener('click',async ()=>{
   const amt=parseFloat(String($('#fAmt').value).replace(/[^\d.]/g,''));
   if(!amt||amt<=0)return toast('Enter the amount first');
@@ -2499,12 +2762,23 @@ $('#btnSaveEntry').addEventListener('click',async ()=>{
   const prev=editingId?entries.find(x=>x.id===editingId):null;
   const baseTs=prev?prev.ts:Date.now();
   const chosenTs=fromDateInput($('#fDate').value,baseTs);
+  /* The rate is captured now and stored on the row, so a historical entry
+     never silently re-values when tomorrow's rates move. Editing without
+     touching the currency keeps the rate that was captured originally.
+     fxRate/baseAmount are always against the INR pivot (see baseOf). */
+  const keptRate=(prev&&prev.cur===fCur&&typeof prev.fxRate==='number')
+    ? prev.fxRate
+    : fxRateBetween(fCur,'INR');
+  const entered=roundMoney(amt,fCur);
   const rec={
     id:editingId||uid(),
     ts:chosenTs,
     type:addType,
     wallet:fWallet,
-    amount:Math.round(amt*100)/100,
+    amount:entered,
+    cur:fCur,
+    fxRate:keptRate,
+    baseAmount:roundMoney(entered*keptRate,'INR'),
     note:$('#fNote').value.trim()
   };
   if(addType==='in')rec.source=fSource;
@@ -2793,8 +3067,12 @@ function rowsForExport(b){
     'Paid to':e.personId?personName(e.personId):'',
     'Note':e.note||'',
     'Category':e.cat||'',
-    'In (\u20B9)':e.type==='in'?e.amount:'',
-    'Out (\u20B9)':e.type!=='in'?e.amount:'',
+    'Currency':curOf(e),
+    'In':e.type==='in'?e.amount:'',
+    'Out':e.type!=='in'?e.amount:'',
+    ['Rate to '+baseCur]:e.amount?+(baseOf(e)/e.amount).toFixed(4):1,
+    ['In ('+baseCur+')']:e.type==='in'?baseOf(e):'',
+    ['Out ('+baseCur+')']:e.type!=='in'?baseOf(e):'',
     'Deducted from balance?':e.type==='in'?'':(e.noDeduct?'No':'Yes')
   }));
 }
@@ -2864,7 +3142,7 @@ $('#btnDoExport').addEventListener('click',async ()=>{
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Ledger');
     /* summary reflects the SAME window, not all time */
     const win=entries.filter(e=>e.ts>=b.from&&e.ts<=b.to&&!e.hidden);
-    const sum=(f)=>win.filter(f).reduce((n,e)=>n+e.amount,0);
+    const sum=(f)=>win.filter(f).reduce((n,e)=>n+baseOf(e),0);
     const inc=sum(e=>e.type==='in'&&!e.noDeduct);
     const spent=sum(e=>e.type==='out'&&!e.noDeduct);
     const others=sum(e=>e.type==='other'&&!e.noDeduct);
@@ -2965,14 +3243,14 @@ function rewindStats(b){
   let spent=0,received=0,others=0,biggest=null;
   const cats={};
   for(const e of list){
-    if(e.type==='out'&&!e.noDeduct)spent+=e.amount;
-    else if(e.type==='in'&&!e.noDeduct)received+=e.amount;
-    else if(e.type==='other'&&!e.noDeduct)others+=e.amount;
+    if(e.type==='out'&&!e.noDeduct)spent+=baseOf(e);
+    else if(e.type==='in'&&!e.noDeduct)received+=baseOf(e);
+    else if(e.type==='other'&&!e.noDeduct)others+=baseOf(e);
     if(e.type==='out'){
       const k=e.cat||'Uncategorised';
       const c=cats[k]||(cats[k]={label:k,amt:0,cnt:0});
-      c.amt+=e.amount;c.cnt++;
-      if(!biggest||e.amount>biggest.amount)biggest=e;
+      c.amt+=baseOf(e);c.cnt++;
+      if(!biggest||baseOf(e)>baseOf(biggest))biggest=e;
     }
   }
   const top=Object.values(cats).sort((a,b2)=>b2.amt-a.amt).slice(0,3);
@@ -3005,7 +3283,7 @@ function rewindHTML(b,s){
   }
   const hi=[];
   if(s.biggest){
-    hi.push('Your biggest single spend was <b>'+fmt(s.biggest.amount)+'</b> on '+
+    hi.push('Your biggest single spend was <b>'+fmt(baseOf(s.biggest))+'</b> on '+
       esc(entryTitle(s.biggest))+', on '+new Date(s.biggest.ts).toLocaleDateString('en-IN',{day:'numeric',month:'long'})+'.');
   }
   if(s.spent>0&&s.days>1)hi.push('That works out to about <b>'+fmt(s.spent/s.days)+'</b> a day.');
@@ -3160,7 +3438,7 @@ function renderHidden(){
   if(!hid.length){wrap.innerHTML='<div class="hint" style="text-align:center">Nothing hidden. Hide an entry from its edit screen and it waits here.</div>';return;}
   hid.forEach(e=>{
     const row=document.createElement('div');row.className='hidden-row';
-    row.innerHTML='<div class="hr-main"><div class="hr-t">'+esc(entryTitle(e))+'</div><div class="hr-s">'+fmtSigned(e.type==='in'?e.amount:-e.amount)+' · '+esc(entryMeta(e))+'</div></div><button class="mini-btn">Unhide</button>';
+    row.innerHTML='<div class="hr-main"><div class="hr-t">'+esc(entryTitle(e))+'</div><div class="hr-s">'+fmtSigned(e.type==='in'?baseOf(e):-baseOf(e))+' · '+esc(entryMeta(e))+'</div></div><button class="mini-btn">Unhide</button>';
     row.querySelector('.mini-btn').addEventListener('click',async ()=>{
       e.hidden=false;await dbPut(e);renderHidden();renderAll();snapshotSoon();toast('Back in the ledger');
     });
@@ -3252,6 +3530,11 @@ function showPinGate(){
   const rc=await dbMetaGet('recurrings');if(Array.isArray(rc))recurrings=rc;
   const pp=await dbMetaGet('people');if(Array.isArray(pp))people=pp;
   const ua=await dbMetaGet('preferredUpiApp');if(ua&&UPI_APPS[ua])preferredUpiApp=ua;
+  const bc=await dbMetaGet('baseCur');if(bc&&CURRENCIES[bc])baseCur=bc;
+  const fx=await dbMetaGet('fx');
+  if(fx&&fx.rates){RATES=Object.assign({},FALLBACK_RATES,fx.rates);fxUpdatedAt=fx.at||0;}
+  fCur=baseCur;
+  baseCurLabel();
   const rf=await dbMetaGet('rewindFreq');if(rf==='year'||rf==='month')rewindFreq=rf;
   lastRewindPeriod=(await dbMetaGet('lastRewindPeriod'))||null;
   rewindFreqLabel();
@@ -3273,6 +3556,11 @@ function showPinGate(){
   if(!pinCode){ dueQueue=collectDue(); if(dueQueue.length)setTimeout(showDueQueue,700); }
   maybeShowWhatsNew();
   maybeShowRewind();
+  /* rates refresh AFTER the first render, so a slow or absent network
+     never delays boot — the bundled table is already good enough to show */
+  setTimeout(async ()=>{
+    try{ if(await refreshRates(false)){fxLabel();renderAll();} }catch(_){}
+  },1200);
 })();
 </script>
 </body>
