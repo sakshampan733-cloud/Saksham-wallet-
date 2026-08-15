@@ -57,8 +57,12 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{height:100%}
+/* App shell: the PAGE never scrolls, #scroller does. On a phone that stops the
+   browser URL bar collapsing and expanding, which was changing the viewport
+   height and making the fixed tab pill ride up and down between tabs. */
 body{
-  min-height:100%;
+  height:100%;
+  overflow:hidden;
   background:var(--bg);
   color:var(--ink);
   font-family:'Archivo',-apple-system,system-ui,sans-serif;
@@ -68,6 +72,13 @@ body{
   overscroll-behavior:none;
   transition:background .4s ease, color .4s ease;
   --tabbar-h:calc(60px + 11px + env(safe-area-inset-bottom));
+}
+#scroller{
+  height:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
 }
 img{display:block;max-width:100%}
 button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
@@ -317,7 +328,7 @@ main{padding:8px 18px calc(var(--tabbar-h) + 30px);max-width:760px;margin:0 auto
   .sheet{left:50%;right:auto;width:560px;transform:translate(-50%,105%)}
   .sheet.open{transform:translate(-50%,0)}
 }
-body.sheet-open{overflow:hidden}
+body.sheet-open #scroller{overflow:hidden}   /* body no longer scrolls — lock the shell instead */
 body.settled .entry,body.settled .stat{animation:none}
 
 /* ---------- segmented ---------- */
@@ -440,6 +451,8 @@ nav.tabbar{
 }
 /* shrinks while the page is actively scrolling, settles back once it stops —
    the same "get out of the way" motion Instagram's tab bar uses */
+/* shrink toward the bottom edge so the pill never drifts vertically as it scales */
+nav.tabbar{transform-origin:center bottom}
 nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
 .tab{
   flex:1;height:100%;border-radius:999px;min-width:0;
@@ -655,6 +668,138 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
 .search-bar .sb-done{min-height:40px; display:inline-flex; align-items:center}
 .set-back{min-height:40px}
 
+/* ---------- floating calculator ----------
+   Collapsed it's a small puck above the tab bar; open it grows into a pad.
+   z-index sits above sheets so it can be used while typing an amount. */
+.calc{position:fixed;right:16px;z-index:80;bottom:calc(var(--tabbar-h) + 74px);}
+body.sheet-open .calc{bottom:calc(var(--tabbar-h) + 12px)}   /* fab is hidden behind a sheet */
+.calc-fab{
+  width:46px;height:46px;border-radius:15px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:19px;font-weight:800;
+  background:var(--card);color:var(--ink);
+  border:1.5px solid var(--line-strong);
+  box-shadow:0 8px 22px rgba(0,0,0,.22);
+  transition:transform .22s cubic-bezier(.34,1.4,.5,1), opacity .2s;
+}
+.calc-fab:active{transform:scale(.9)}
+.calc.open .calc-fab{opacity:0;pointer-events:none;transform:scale(.6)}
+.calc-panel{
+  position:absolute;right:0;bottom:0;width:250px;
+  padding:12px;border-radius:20px;
+  background:var(--card);border:1.5px solid var(--line-strong);
+  box-shadow:0 18px 46px rgba(0,0,0,.34);
+  transform-origin:bottom right;
+  transform:scale(.5);opacity:0;pointer-events:none;
+  transition:transform .26s cubic-bezier(.22,1,.36,1), opacity .18s;
+}
+.calc.open .calc-panel{transform:scale(1);opacity:1;pointer-events:auto}
+.calc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.calc-head .ch-k{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.calc-close{width:26px;height:26px;border-radius:50%;border:1px solid var(--line-strong);color:var(--muted);font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center}
+/* no direction:rtl here — it visually reorders "1250 ÷" into "÷ 1250" */
+.calc-expr{font-size:11px;color:var(--muted);text-align:right;min-height:15px;font-family:'IBM Plex Mono',monospace;overflow:hidden;white-space:nowrap}
+.calc-out{font-size:25px;font-weight:800;text-align:right;margin-bottom:9px;overflow:hidden;white-space:nowrap}
+.calc-keys{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.ck{
+  height:40px;border-radius:11px;font-size:15px;font-weight:700;
+  background:var(--card-2);border:1px solid var(--line);
+  transition:transform .1s;
+}
+.ck:active{transform:scale(.9)}
+.ck.op{color:var(--neg);font-weight:800}
+.ck.fn{font-size:13px;color:var(--muted)}
+.ck.eq{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.calc-use{
+  width:100%;margin-top:8px;height:38px;border-radius:11px;
+  border:1.5px dashed var(--line-strong);color:var(--muted);
+  font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  display:none;
+}
+.calc-use.on{display:block;color:var(--neg);border-color:var(--neg);border-style:solid}
+
+/* ---------- QR scan ---------- */
+.scan-cta{
+  display:flex;align-items:center;gap:13px;width:100%;text-align:left;
+  padding:15px 16px;border-radius:16px;margin-top:4px;
+  border:1.5px solid var(--line-strong);background:var(--card);
+  transition:transform .12s;
+}
+.scan-cta:active{transform:scale(.985)}
+.scan-cta .sq-ico{
+  flex:0 0 auto;width:40px;height:40px;border-radius:12px;
+  border:1px solid var(--line-strong);background:var(--card-2);
+  display:flex;align-items:center;justify-content:center;font-size:19px;
+}
+.scan-cta .sq-txt{flex:1;min-width:0}
+.scan-cta .sq-t{display:block;font-size:14px;font-weight:800;letter-spacing:.01em}
+.scan-cta .sq-s{display:block;font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.scan-cta .sq-arrow{flex:0 0 auto;color:var(--neg);font-size:16px}
+.scan-stage{
+  position:relative;border-radius:16px;overflow:hidden;background:#000;
+  aspect-ratio:1/1;max-height:46vh;margin-bottom:12px;
+}
+.scan-stage video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-frame>i{
+  width:62%;aspect-ratio:1/1;border-radius:16px;
+  box-shadow:0 0 0 100vmax rgba(0,0,0,.45);
+  border:2px solid rgba(255,255,255,.9);
+}
+.scan-msg{font-size:12.5px;color:var(--muted);text-align:center;margin-bottom:14px;line-height:1.5;min-height:19px}
+.scan-msg.bad{color:var(--neg)}
+
+/* ---------- converter ---------- */
+.cv-swapline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px 2px 12px}
+.cv-pair{font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--muted)}
+.cv-pair .cv-arrow{opacity:.6;margin:0 4px}
+.cv-result{
+  padding:16px 18px;border-radius:16px;margin-bottom:16px;
+  border:1px solid var(--line-strong);background:var(--card-2);text-align:center;
+}
+.cv-out{font-size:30px;font-weight:800;letter-spacing:-.02em}
+.cv-rate{font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:.03em}
+.cv-glance{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:4px 0 12px}
+.cv-g{
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  padding:9px 11px;border-radius:10px;border:1px solid var(--line);background:var(--card);
+}
+.cv-g .cg-k{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--muted)}
+.cv-g .cg-v{font-size:12.5px;font-weight:700;font-family:'IBM Plex Mono',monospace}
+/* an amount you can tap to flip between what you paid and your own currency */
+.e-amt.flip,.bal-amount.flip{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;
+  text-underline-offset:3px;text-decoration-color:var(--line-strong)}
+.e-amt.flipped{opacity:.92}
+
+/* ---------- safe to spend ---------- */
+.sts-card{
+  margin-top:12px;padding:16px 18px;border-radius:18px;
+  border:1px solid var(--line-strong);background:var(--card);
+  position:relative;overflow:hidden;
+}
+.sts-card::before{                     /* a soft wash that tints with the state */
+  content:'';position:absolute;inset:0;opacity:.5;pointer-events:none;
+  background:linear-gradient(135deg,var(--pos-soft),transparent 62%);
+}
+.sts-card.warn::before{background:linear-gradient(135deg,var(--violet-soft),transparent 62%)}
+.sts-card.over::before{background:linear-gradient(135deg,var(--neg-soft),transparent 62%)}
+.sts-top{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative}
+.sts-k{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.sts-info{
+  width:22px;height:22px;border-radius:50%;flex:0 0 auto;
+  border:1px solid var(--line-strong);color:var(--muted);
+  font-size:11px;font-weight:800;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.sts-amount{font-size:34px;font-weight:800;letter-spacing:-.02em;margin-top:6px;position:relative;color:var(--pos)}
+.sts-card.warn .sts-amount{color:var(--violet)}
+.sts-card.over .sts-amount{color:var(--neg)}
+.sts-bar{height:5px;border-radius:3px;background:var(--line);margin-top:12px;overflow:hidden;position:relative}
+.sts-bar>i{display:block;height:100%;border-radius:3px;background:var(--pos);width:0;transition:width .5s cubic-bezier(.22,1,.36,1)}
+.sts-card.warn .sts-bar>i{background:var(--violet)}
+.sts-card.over .sts-bar>i{background:var(--neg)}
+.sts-sub{font-size:11.5px;color:var(--muted);margin-top:9px;line-height:1.5;position:relative}
+
 /* ---------- layered settings ---------- */
 .set-row{min-height:56px}                              /* comfortable thumb target */
 .set-group{padding:12px 14px}                          /* all six fit one screen */
@@ -764,6 +909,7 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
 </style>
 </head>
 <body>
+<div id="scroller">
 
 <header class="app">
   <div class="wordmark">
@@ -787,6 +933,16 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
         <div class="wallet-chip"><span class="wc-k">Cash in hand</span><span class="wc-v mono" id="balCash">₹0</span></div>
         <div class="wallet-chip"><span class="wc-k">Bank · UPI</span><span class="wc-v mono" id="balUpi">₹0</span></div>
       </div>
+    </div>
+
+    <div class="sts-card" id="stsCard">
+      <div class="sts-top">
+        <div class="sts-k">Safe to spend today</div>
+        <button class="sts-info" id="btnStsInfo" aria-label="How this is worked out">?</button>
+      </div>
+      <div class="sts-amount mono" id="stsToday">₹0</div>
+      <div class="sts-bar"><i id="stsBar"></i></div>
+      <div class="sts-sub" id="stsSub"></div>
     </div>
 
     <div class="stat-row">
@@ -824,6 +980,14 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
 
   <!-- ============ PAY ============ -->
   <section class="view" id="view-pay">
+    <button class="scan-cta" id="btnScanQR">
+      <span class="sq-ico">▣</span>
+      <span class="sq-txt">
+        <span class="sq-t">Scan a UPI QR</span>
+        <span class="sq-s">Point at any shop's QR — the payee and amount fill themselves in.</span>
+      </span>
+      <span class="sq-arrow">→</span>
+    </button>
     <div class="section-head"><div class="section-title">People</div><button class="linklike" id="btnAddPerson">+ Add person</button></div>
     <div id="payCards"></div>
     <div class="pay-note">Saksham Wallet never moves money and never holds a UPI PIN, card or bank detail. Tapping Pay records the entry here, then hands the amount to your own UPI app — you approve it there, exactly like paying on Zomato or Swiggy.</div>
@@ -876,6 +1040,14 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
         <div class="set-row" id="btnRecurring">
           <div>Recurring payments<small>Subscriptions and regular bills. The wallet asks to log each one when it's due.</small></div>
           <span class="arrow">→</span>
+        </div>
+        <div class="set-row" id="btnConverter">
+          <div>Currency converter<small>Convert between any two currencies at today's rate. Also on Home — tap your balance.</small></div>
+          <span class="arrow">→</span>
+        </div>
+        <div class="set-row" id="btnReserve">
+          <div>Safe-to-spend reserve<small>A cushion held back from the daily figure on Home, so it never invites you to spend your last rupee.</small></div>
+          <span class="arrow" id="reserveVal">₹0</span>
         </div>
         <div class="set-row" id="btnBaseCur">
           <div>Currency<small id="baseCurSub">Everything is totalled in this. Entries can still be recorded in any currency.</small></div>
@@ -980,8 +1152,43 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
     </div>
   </section>
 </main>
+</div><!-- /#scroller -->
 
 <button class="fab" id="fabAdd" aria-label="Add entry">+</button>
+
+<div class="calc" id="calc">
+  <button class="calc-fab" id="calcFab" aria-label="Calculator">=</button>
+  <div class="calc-panel" id="calcPanel">
+    <div class="calc-head">
+      <span class="ch-k">Calculator</span>
+      <button class="calc-close" id="calcClose" aria-label="Close calculator">×</button>
+    </div>
+    <div class="calc-expr" id="calcExpr">&nbsp;</div>
+    <div class="calc-out mono" id="calcOut">0</div>
+    <div class="calc-keys" id="calcKeys">
+      <button class="ck fn" data-k="C">C</button>
+      <button class="ck fn" data-k="←">←</button>
+      <button class="ck fn" data-k="%">%</button>
+      <button class="ck op" data-k="÷">÷</button>
+      <button class="ck" data-k="7">7</button>
+      <button class="ck" data-k="8">8</button>
+      <button class="ck" data-k="9">9</button>
+      <button class="ck op" data-k="×">×</button>
+      <button class="ck" data-k="4">4</button>
+      <button class="ck" data-k="5">5</button>
+      <button class="ck" data-k="6">6</button>
+      <button class="ck op" data-k="−">−</button>
+      <button class="ck" data-k="1">1</button>
+      <button class="ck" data-k="2">2</button>
+      <button class="ck" data-k="3">3</button>
+      <button class="ck op" data-k="+">+</button>
+      <button class="ck" data-k="0">0</button>
+      <button class="ck" data-k=".">.</button>
+      <button class="ck eq" data-k="=" style="grid-column:span 2">=</button>
+    </div>
+    <button class="calc-use" id="calcUse">Use this amount</button>
+  </div>
+</div>
 
 <nav class="tabbar">
   <button class="tab on" data-view="home"><span class="t-glyph">⌂</span>Home</button>
@@ -1235,6 +1442,59 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
   </div>
 </div>
 
+<div class="scrim" id="scrimScan"></div>
+<div class="sheet" id="sheetScan">
+  <button class="sheet-close" data-close="Scan" aria-label="Close">×</button>
+  <div class="sheet-grip"></div>
+  <div class="sheet-body">
+    <div class="sheet-title">Scan UPI QR</div>
+    <div class="scan-stage" id="scanStage">
+      <video id="scanVideo" playsinline muted></video>
+      <div class="scan-frame"><i></i></div>
+    </div>
+    <div class="scan-msg" id="scanMsg">Hold the QR inside the frame.</div>
+    <div class="btn-row">
+      <button class="btn btn-line" id="btnScanFile">Use a photo instead</button>
+    </div>
+    <input type="file" id="fileQR" accept="image/*" hidden>
+    <div class="hint">Nothing is uploaded — the code is read on your phone. You still approve the payment in your own UPI app.</div>
+  </div>
+</div>
+
+<div class="scrim" id="scrimConv"></div>
+<div class="sheet" id="sheetConv">
+  <button class="sheet-close" data-close="Conv" aria-label="Close">×</button>
+  <div class="sheet-grip"></div>
+  <div class="sheet-body">
+    <div class="sheet-title">Convert</div>
+    <div class="field">
+      <label>Amount</label>
+      <div class="amount-wrap">
+        <button type="button" class="cur cur-pick" id="cvFromBtn">₹</button>
+        <input class="amount-input" id="cvAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+      </div>
+    </div>
+    <div class="cv-swapline">
+      <div class="cv-pair"><span id="cvFromCode">INR</span> <span class="cv-arrow">→</span> <span id="cvToCode">USD</span></div>
+      <button type="button" class="mini-btn" id="cvSwap">⇅ Swap</button>
+    </div>
+    <div class="cv-result">
+      <div class="cv-out mono" id="cvOut">—</div>
+      <div class="cv-rate" id="cvRate"></div>
+    </div>
+    <div class="field">
+      <label>From</label>
+      <div class="cur-grid" id="cvFromGrid"></div>
+    </div>
+    <div class="field">
+      <label>To</label>
+      <div class="cur-grid" id="cvToGrid"></div>
+    </div>
+    <div class="cv-glance" id="cvGlance"></div>
+    <div class="hint" id="cvHint"></div>
+  </div>
+</div>
+
 <div class="scrim" id="scrimSearch"></div>
 <div class="sheet sheet-top" id="sheetSearch">
   <div class="sheet-body">
@@ -1285,7 +1545,10 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
       <label>Open with</label>
       <div class="chips" id="payAppChips"></div>
     </div>
-    <div class="btn-row"><button class="btn btn-solid" id="btnDoPay">Pay via UPI →</button></div>
+    <div class="btn-row">
+      <button class="btn btn-line" id="btnSavePayee" style="display:none">Save payee</button>
+      <button class="btn btn-solid" id="btnDoPay">Pay via UPI →</button>
+    </div>
     <div class="pay-note">Recorded here first, then that app opens with the amount filled in. You approve the payment there — the wallet only builds the link. On iPhone this is best-effort — if the app you pick doesn't have it, any UPI app opens instead.</div>
   </div>
 </div>
@@ -1379,10 +1642,15 @@ function dbSnapDel(ts){return new Promise(res=>{if(!db)return res();try{const tx
 /* ================= state & helpers ================= */
 let entries=[];           // {id,ts,type,wallet:cash|upi|credit|debit,amount,note,cat?,source?,who?,from?,acct?,hidden?}
 // ===== version + what's-new =====
-const APP_VERSION='2.8';
+const APP_VERSION='2.9';
 const WHATS_NEW={
-  version:'2.8',
+  version:'2.9',
   items:[
+    'Safe to spend today — the number on Home that answers "can I actually buy this?". Your balance, minus the bills still due this month, minus your reserve, spread over the days left, minus what today has already taken. Tap ? for the working; set a reserve under Settings → Money & bills.',
+    'Scan a UPI QR from the Pay tab — point at any shop code and the payee and amount fill themselves in, then it hands off to your UPI app as before.',
+    'A calculator that stays out of the way — the small = puck above the tab bar. Open it while entering an amount and it offers to drop the answer straight in.',
+    'Tap a foreign amount to flip between what you paid and what it cost you. Tap your balance for a full currency converter.',
+    'The tab bar no longer drifts up and down as you move between tabs.',
     'Multi-currency — tap the ₹ badge on the amount field to record a spend in dollars, yen, baht or 19 other currencies. It converts at that day’s rate, shows both figures on the entry, and your totals stay in one currency (change it under Settings → Money & bills).',
     'Swipe any entry left for Hide and Delete, and search by date — try “yesterday”, “july” or “last month”.',
     'Search — the ⌕ button in the header. Type a few letters and it finds any entry by item, category, account, whose money it was, who you paid, or the amount.',
@@ -1415,10 +1683,12 @@ function accountLabel(id){const a=accounts.find(x=>x.id===id);return a?a.label:(
 let people=[];          // {id,name,upi} — who you pay by UPI
 function personName(id){const p=people.find(x=>x.id===id);return p?p.name:'';}
 let payTargetId=null, pfEditingId=null;
+let payAdhoc=null;   // {upi,name} for a scanned payee who isn't saved
 let rewindFreq='month';        // 'month' | 'year'
 let lastRewindPeriod=null;     // e.g. '2026-06' or '2025' — the period already shown
 let privacyHidden=false, pinCode=null, pinOK=false;
 let recurrings=[];   // {id,name,amount,freq:'month'|'week'|'day',day,wallet,from,cat,acct,startTs,lastPaidTs}
+let safeReserve=0;   // buffer held back from "safe to spend", in base currency
 let rfEditingId=null, rfFreq='month', rfWallet='cash', rfFrom='', rfCat='', rfAcct='';
 let dueQueue=[], dueIdx=0;
 let fWallet='cash', fSource='pocket', fCat='', fFrom='', fAcct='', fNoDeduct=false, fCur='INR';
@@ -1544,14 +1814,19 @@ function toast(msg){
 window.addEventListener('error',e=>{try{toast('Error: '+(e.message||'something broke'));}catch(_){}});
 window.addEventListener('unhandledrejection',e=>{try{toast('Error: '+((e.reason&&e.reason.message)||e.reason||'async failure'));}catch(_){}});
 
-/* tab bar shrinks while the page is moving, settles back once it's still */
+/* #scroller is the only thing that scrolls now — see the app-shell note in CSS */
+const scrollerEl=()=>document.getElementById('scroller');
+function scrollTop0(){const s=scrollerEl();if(s)s.scrollTop=0;}
+
+/* tab bar shrinks while the list is moving, settles back once it's still */
 let _tabbarScrollT=null;
-window.addEventListener('scroll',()=>{
+document.addEventListener('scroll',e=>{
+  if(e.target!==scrollerEl())return;                 // ignore sheet-body scrolls
   const nav=document.querySelector('nav.tabbar');if(!nav)return;
   nav.classList.add('scrolling');
   clearTimeout(_tabbarScrollT);
   _tabbarScrollT=setTimeout(()=>nav.classList.remove('scrolling'),160);
-},{passive:true});
+},{passive:true,capture:true});
 const _arm={};
 function armConfirm(key,msg){
   const t=Date.now();
@@ -1665,6 +1940,7 @@ function entryTitle(e){
   if(e.type==='other')return (e.who||'Someone')+(e.note?' \u2014 '+e.note:'');
   if(e.type==='in'){return e.note||sourceLabel(e.source)||'Received';}
   if(e.personId&&!e.note){const n=personName(e.personId);if(n)return 'Paid '+n;}
+  if(e.payeeUpi&&!e.note)return 'Paid '+e.payeeUpi.split('@')[0];   // scanned QR payee
   return e.note||'Spent';
 }
 function entryMeta(e){
@@ -1709,7 +1985,23 @@ function entryRow(e,ix){
   d.innerHTML='<div class="e-badge '+cls+'">'+sym+'</div>'+
     '<div class="e-main"><div class="e-title">'+esc(entryTitle(e))+ndTag+'</div>'+
     '<div class="e-meta">'+esc(entryMeta(e))+'</div></div>'+
-    '<div class="e-amt mono '+cls+'">'+sign+fmtCur(baseOf(e),baseCur).replace(/^\u2212/,'')+'</div>';
+    '<div class="e-amt mono '+cls+(isForeign(e)?' flip':'')+'">'+sign+fmtCur(baseOf(e),baseCur).replace(/^\u2212/,'')+'</div>';
+
+  /* a foreign entry flips between what you actually paid and what it cost you,
+     without opening anything — the thing that was missing in Japan */
+  if(isForeign(e)){
+    const amtEl=d.querySelector('.e-amt');
+    amtEl.title='Tap to see the original amount';
+    amtEl.addEventListener('click',ev=>{
+      ev.stopPropagation();                       // don't open the edit sheet
+      if(swipeJustDragged())return;
+      const showingOrig=amtEl.classList.toggle('flipped');
+      amtEl.textContent=sign+(showingOrig
+        ? fmtCur(e.amount,curOf(e)).replace(/^−/,'')
+        : fmtCur(baseOf(e),baseCur).replace(/^−/,''));
+      amtEl.title=showingOrig?'Tap to see it in '+baseCur:'Tap to see the original amount';
+    });
+  }
 
   const actions=document.createElement('div');actions.className='entry-actions';
   actions.innerHTML=
@@ -1804,10 +2096,11 @@ function renderHome(){
   countTo($('#stSpent'),m.spent);
   countTo($('#stOthers'),m.others);
   countTo($('#stIn'),m.inc);
+  renderSafeToSpend();
   const rb=$('#recentBody');rb.innerHTML='';
   const rec=visible().slice().sort((a,b)=>b.ts-a.ts).slice(0,5);
   if(!rec.length){
-    rb.innerHTML='<div class="empty"><div class="e-mark">\u20B9</div><p>Nothing recorded yet. Start by counting the cash in your pocket \u2014 More \u2192 Set opening cash \u2014 then record as you spend.</p></div>';
+    rb.innerHTML='<div class="empty"><div class="e-mark">\u20B9</div><p>Nothing recorded yet. Start by counting the cash in your pocket \u2014 Settings \u2192 Money &amp; bills \u2192 Set opening cash \u2014 then record as you spend.</p></div>';
     return;
   }
   rec.forEach((e,ix)=>rb.appendChild(entryRow(e,ix)));
@@ -1995,6 +2288,62 @@ function dueDatesFor(r,today){
   while(occ<=today && guard<800){ out.push(occ); occ=stepDate(occ,r.freq,r.day); guard++; }
   return out;
 }
+/* ---- Safe to spend today ----
+   What's left of this month's money once the bills you already know about and
+   your reserve are set aside, divided by the days still to come — then minus
+   whatever today has already taken. All figures in base currency via baseOf. */
+function duesAhead(fromTs,toTs){
+  let total=0;
+  recurrings.forEach(r=>{
+    let occ = r.lastPaidTs ? stepDate(startOfDay(r.lastPaidTs),r.freq,r.day) : firstOccurrence(r);
+    let guard=0;
+    while(occ<=toTs && guard<800){
+      if(occ>=fromTs){
+        const rate=fxRateBetween(r.cur||baseCur,'INR');
+        const pivot=(r.amount||0)*rate;
+        total += baseCur==='INR'?pivot:pivot/rateOf(baseCur);
+      }
+      occ=stepDate(occ,r.freq,r.day); guard++;
+    }
+  });
+  return total;
+}
+function safeToSpend(){
+  const now=new Date();
+  const today=startOfDay(Date.now());
+  const monthEnd=new Date(now.getFullYear(),now.getMonth()+1,0);
+  const endTs=startOfDay(monthEnd.getTime());
+  const daysLeft=Math.max(1,Math.round((endTs-today)/86400000)+1);   // counting today
+
+  const balance=sums().total;   // sums() exposes {cash, upi, total}
+  const dues=duesAhead(today+86400000,endTs);                        // tomorrow → month end
+  const reserve=safeReserve;
+  const pool=balance-dues-reserve;
+  const perDay=pool/daysLeft;
+
+  const spentToday=entries.filter(e=>!e.hidden&&!e.noDeduct&&e.type==='out'&&startOfDay(e.ts)===today)
+                          .reduce((n,e)=>n+baseOf(e),0);
+  return {balance,dues,reserve,daysLeft,pool,perDay,spentToday,
+          leftToday:perDay-spentToday, monthEnd:endTs};
+}
+function renderSafeToSpend(){
+  const el=$('#stsCard');if(!el)return;
+  const r=safeToSpend();
+  const left=r.leftToday;
+  el.classList.toggle('over',left<0);
+  el.classList.toggle('warn',left>=0&&r.perDay>0&&left<r.perDay*0.25);
+  $('#stsToday').textContent=fmtSigned(left);
+  const pct=r.perDay>0?Math.max(0,Math.min(100,(left/r.perDay)*100)):0;
+  $('#stsBar').style.width=pct+'%';
+  const bits=[];
+  if(r.perDay>0)bits.push(fmtCur(Math.round(r.perDay),baseCur)+'/day');
+  bits.push(fmtCur(Math.round(r.spentToday),baseCur)+' spent today');
+  bits.push(r.daysLeft+(r.daysLeft===1?' day left':' days left'));
+  let msg=bits.join(' · ');
+  if(r.pool<=0)msg='Your balance won’t cover the bills still due this month. '+msg;
+  else if(left<0)msg='Over today’s pace by '+fmtCur(Math.abs(Math.round(left)),baseCur)+'. '+msg;
+  $('#stsSub').textContent=msg;
+}
 function collectDue(){
   const today=startOfDay(Date.now());
   const q=[];
@@ -2142,7 +2491,7 @@ function renderAcctList(){
     '<div class="ac-sub"><span class="ac-stat">Received<b class="mono">'+fmtSigned(allF.inAmt)+'</b></span>'+
     '<span class="ac-stat">Spent<b class="mono">'+fmtSigned(allF.outAmt)+'</b></span>'+
     '<span class="ac-stat">Accounts<b>'+accounts.length+'</b></span></div><span class="ac-arrow">→</span>';
-  all.addEventListener('click',()=>{window.scrollTo(0,0);acctSel='__all';acctView='detail';renderAccounts();});
+  all.addEventListener('click',()=>{scrollTop0();acctSel='__all';acctView='detail';renderAccounts();});
   host.appendChild(all);
   if(!accounts.length){
     host.insertAdjacentHTML('beforeend','<div class="empty" style="margin-top:6px"><div class="e-mark">◱</div><p>No accounts yet. Create one — like "Japan Trip" or "Savings" — with + New account, then tag money into it when you record.</p></div>');
@@ -2155,7 +2504,7 @@ function renderAcctList(){
       '<div class="ac-sub"><span class="ac-stat">Received<b class="mono">'+fmtSigned(f.inAmt)+'</b></span>'+
       '<span class="ac-stat">Spent<b class="mono">'+fmtSigned(f.outAmt)+'</b></span>'+
       '<span class="ac-stat">Entries<b>'+f.cnt+'</b></span></div><span class="ac-arrow">→</span>';
-    c.addEventListener('click',()=>{window.scrollTo(0,0);acctSel=a.id;acctView='detail';renderAccounts();});
+    c.addEventListener('click',()=>{scrollTop0();acctSel=a.id;acctView='detail';renderAccounts();});
     host.appendChild(c);
   });
 }
@@ -2202,7 +2551,7 @@ function renderAcctDetail(id){
   else { const wrap=document.createElement('div'); list.forEach((e,ix)=>wrap.appendChild(entryRow(e,ix))); body.appendChild(wrap); }
   applyPrivacy();
 }
-$('#btnAcctBack').addEventListener('click',()=>{window.scrollTo(0,0);acctView='list';acctSel=null;renderAccounts();});
+$('#btnAcctBack').addEventListener('click',()=>{scrollTop0();acctView='list';acctSel=null;renderAccounts();});
 $('#btnAddAcct').addEventListener('click',()=>addAccountPrompt(id=>{acctSel=id;acctView='detail';renderAccounts();}));
 /* ================= layered settings =================
    Thirteen rows in one list meant a long scroll; they're grouped into six
@@ -2214,7 +2563,7 @@ function renderSettings(){
     p.classList.toggle('on',p.id==='setpage-'+settingsPage);
   });
 }
-function openSettingsPage(page){window.scrollTo(0,0);settingsPage=page;renderSettings();}
+function openSettingsPage(page){scrollTop0();settingsPage=page;renderSettings();}
 document.querySelectorAll('.set-group').forEach(g=>{
   g.addEventListener('click',()=>openSettingsPage(g.dataset.page));
 });
@@ -2233,13 +2582,17 @@ function baseCurLabel(){
   if(s)s.textContent=curMeta(baseCur).name+' ('+curMeta(baseCur).sym+') — everything is totalled in this. Entries can still be recorded in any currency.';
   fxLabel();
 }
-function fxLabel(){
-  const s=$('#fxSub');if(!s)return;
-  if(!fxUpdatedAt){s.textContent='Using the built-in table. Tap to fetch live rates.';return;}
+function fxNote(){
+  if(!fxUpdatedAt)return 'Using the built-in table — approximate. Connect once to fetch live rates.';
   const mins=Math.round((Date.now()-fxUpdatedAt)/60000);
   const when=mins<2?'just now':(mins<60?mins+' minutes ago':
     (mins<1440?Math.round(mins/60)+' hours ago':Math.round(mins/1440)+' days ago'));
-  s.textContent='Live rates, updated '+when+'. Tap to refresh.';
+  return 'Live rates, updated '+when+'.';
+}
+function fxLabel(){
+  const s=$('#fxSub');if(!s)return;
+  s.textContent=fxUpdatedAt?(fxNote().replace(/\.$/,'')+'. Tap to refresh.')
+                          :'Using the built-in table. Tap to fetch live rates.';
 }
 function renderBaseCurGrid(){
   const g=$('#baseCurGrid');if(!g)return;
@@ -2272,6 +2625,293 @@ $('#btnFxRefresh').addEventListener('click',async ()=>{
 $('#btnPrivacyRow').addEventListener('click',()=>{
   privacyHidden=!privacyHidden;dbMetaPut('privacyHidden',privacyHidden);applyPrivacy();
 });
+
+/* ================= floating calculator =================
+   Tucked into a puck until you need it. When an amount field is on screen it
+   offers to drop the result straight in, which is the whole point of having
+   it here rather than switching apps mid-entry. */
+let calcAcc=null, calcOp=null, calcCur='0', calcFresh=true;
+function calcRender(){
+  $('#calcOut').textContent=calcCur;
+  $('#calcExpr').textContent=(calcAcc!==null?calcAcc:'')+(calcOp?' '+calcOp:'')||' ';
+  const t=calcAmountTarget();
+  $('#calcUse').classList.toggle('on',!!t&&parseFloat(calcCur)>0);
+  $('#calcUse').textContent=t?('Use in '+t.label):'Use this amount';
+}
+/* whichever amount field is actually visible right now */
+function calcAmountTarget(){
+  const open=document.querySelector('.sheet.open');
+  if(!open)return null;
+  const map={sheetAdd:{sel:'#fAmt',label:'this entry'},sheetPay:{sel:'#payAmt',label:'the payment'},
+             sheetConv:{sel:'#cvAmt',label:'convert'},sheetRForm:{sel:'#rfAmt',label:'this bill'}};
+  const m=map[open.id];
+  if(!m)return null;
+  const el=document.querySelector(m.sel);
+  return el?{el,label:m.label}:null;
+}
+function calcApply(a,op,b){
+  switch(op){
+    case '+':return a+b;
+    case '−':return a-b;
+    case '×':return a*b;
+    case '÷':return b===0?NaN:a/b;
+    default:return b;
+  }
+}
+function calcTrim(n){
+  if(!isFinite(n))return 'Error';
+  const r=Math.round(n*1e6)/1e6;
+  return String(r);
+}
+function calcKey(k){
+  if(k==='C'){calcAcc=null;calcOp=null;calcCur='0';calcFresh=true;return calcRender();}
+  if(k==='←'){
+    if(calcFresh)return;
+    calcCur=calcCur.length>1?calcCur.slice(0,-1):'0';
+    if(calcCur==='-')calcCur='0';
+    return calcRender();
+  }
+  if(k==='%'){calcCur=calcTrim((parseFloat(calcCur)||0)/100);calcFresh=true;return calcRender();}
+  if(/[0-9]/.test(k)){
+    calcCur=(calcFresh||calcCur==='0')?k:calcCur+k;
+    calcFresh=false;return calcRender();
+  }
+  if(k==='.'){
+    if(calcFresh){calcCur='0.';calcFresh=false;}
+    else if(!calcCur.includes('.'))calcCur+='.';
+    return calcRender();
+  }
+  if(k==='='){
+    if(calcOp!==null&&calcAcc!==null){
+      calcCur=calcTrim(calcApply(calcAcc,calcOp,parseFloat(calcCur)||0));
+      calcAcc=null;calcOp=null;calcFresh=true;
+    }
+    return calcRender();
+  }
+  /* an operator: fold any pending one first, so 2+3+4 chains properly */
+  const v=parseFloat(calcCur)||0;
+  if(calcOp!==null&&calcAcc!==null&&!calcFresh){
+    calcAcc=calcApply(calcAcc,calcOp,v);
+    calcCur=calcTrim(calcAcc);
+  } else {
+    calcAcc=v;
+  }
+  calcOp=k;calcFresh=true;calcRender();
+}
+$('#calcKeys').addEventListener('click',e=>{
+  const b=e.target.closest('.ck');if(!b)return;
+  calcKey(b.dataset.k);
+  if(navigator.vibrate)try{navigator.vibrate(6);}catch(_){}
+});
+$('#calcFab').addEventListener('click',()=>{$('#calc').classList.add('open');calcRender();});
+$('#calcClose').addEventListener('click',()=>$('#calc').classList.remove('open'));
+$('#calcUse').addEventListener('click',()=>{
+  const t=calcAmountTarget();if(!t)return;
+  const v=parseFloat(calcCur);
+  if(!isFinite(v)||v<=0)return toast('Nothing to use yet');
+  t.el.value=String(Math.round(v*100)/100);
+  t.el.dispatchEvent(new Event('input'));
+  $('#calc').classList.remove('open');
+  toast('Amount filled in');
+});
+
+/* ================= UPI QR scan =================
+   Reads the code on-device: the browser's own BarcodeDetector where it exists
+   (Android Chrome), otherwise jsQR lazy-loaded from a CDN — same shape as the
+   receipt OCR and the xlsx export. The QR only ever gives us a upi:// string;
+   the payment itself still happens in the user's UPI app. */
+let _jsqrP=null;
+function loadJsQR(){
+  if(window.jsQR)return Promise.resolve(window.jsQR);
+  if(_jsqrP)return _jsqrP;
+  _jsqrP=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+    s.onload=()=>window.jsQR?res(window.jsQR):rej(new Error('jsQR missing'));
+    s.onerror=()=>rej(new Error('jsQR load failed'));
+    document.head.appendChild(s);
+  });
+  return _jsqrP;
+}
+/* A UPI QR is a upi://pay?... URI. Some shops encode just the VPA. */
+function parseUpiQR(text){
+  if(!text)return null;
+  const t=String(text).trim();
+  let pa=null,pn='',am='',tn='';
+  if(/^upi:\/\//i.test(t)){
+    let qs=t.slice(t.indexOf('?')+1);
+    if(t.indexOf('?')<0)qs='';
+    const p=new URLSearchParams(qs);
+    pa=p.get('pa');pn=p.get('pn')||'';am=p.get('am')||'';tn=p.get('tn')||'';
+  } else if(UPI_RE.test(t)){
+    pa=t;                                   // bare VPA
+  } else {
+    const m=t.match(/[a-zA-Z0-9.\-_]{2,64}@[a-zA-Z][a-zA-Z0-9.\-]{1,63}/);
+    if(m&&UPI_RE.test(m[0]))pa=m[0];
+  }
+  if(!pa||!UPI_RE.test(pa))return null;
+  return {pa,pn:pn||pa.split('@')[0],am:parseFloat(am)||0,tn};
+}
+let _scanStream=null,_scanRAF=null,_scanDet=null,_scanStop=false;
+function scanMsg(m,bad){const el=$('#scanMsg');if(!el)return;el.textContent=m||'';el.classList.toggle('bad',!!bad);}
+async function startScan(){
+  _scanStop=false;
+  const video=$('#scanVideo');
+  scanMsg('Starting the camera…');
+  try{
+    _scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+  }catch(err){
+    scanMsg('Couldn’t open the camera — allow camera access, or use a photo instead.',true);
+    return;
+  }
+  video.srcObject=_scanStream;
+  try{await video.play();}catch(_){}
+  scanMsg('Hold the QR inside the frame.');
+  if('BarcodeDetector' in window){
+    try{_scanDet=new window.BarcodeDetector({formats:['qr_code']});}catch(_){_scanDet=null;}
+  }
+  const jsqr=_scanDet?null:await loadJsQR().catch(()=>null);
+  if(!_scanDet&&!jsqr){scanMsg('Couldn’t load the QR reader. Use a photo instead, or type the UPI ID.',true);return;}
+  const canvas=document.createElement('canvas');
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  const tick=async()=>{
+    if(_scanStop||!video.videoWidth){_scanRAF=requestAnimationFrame(tick);return;}
+    let text=null;
+    try{
+      if(_scanDet){
+        const codes=await _scanDet.detect(video);
+        if(codes&&codes.length)text=codes[0].rawValue;
+      } else {
+        canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+        ctx.drawImage(video,0,0);
+        const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const r=jsqr(img.data,img.width,img.height);
+        if(r)text=r.data;
+      }
+    }catch(_){}
+    if(text){
+      const hit=parseUpiQR(text);
+      if(hit){onQRFound(hit);return;}
+      scanMsg('That code isn’t a UPI QR.',true);
+    }
+    _scanRAF=requestAnimationFrame(tick);
+  };
+  tick();
+}
+function stopScan(){
+  _scanStop=true;
+  if(_scanRAF)cancelAnimationFrame(_scanRAF);
+  _scanRAF=null;
+  if(_scanStream){_scanStream.getTracks().forEach(t=>{try{t.stop();}catch(_){}});_scanStream=null;}
+  const v=$('#scanVideo');if(v)v.srcObject=null;
+}
+function onQRFound(hit){
+  stopScan();
+  if(navigator.vibrate)try{navigator.vibrate(18);}catch(_){}
+  closeSheet('Scan');
+  openPaySheetAdhoc(hit);
+}
+$('#btnScanQR').addEventListener('click',()=>{openSheet('Scan');startScan();});
+$('#scrimScan').addEventListener('click',()=>{stopScan();closeSheet('Scan');});
+document.querySelector('#sheetScan .sheet-close').addEventListener('click',stopScan);
+$('#btnScanFile').addEventListener('click',()=>$('#fileQR').click());
+$('#fileQR').addEventListener('change',async ev=>{
+  const f=ev.target.files[0];ev.target.value='';
+  if(!f)return;
+  scanMsg('Reading the photo…');
+  try{
+    const bmp=await createImageBitmap(f);
+    let text=null;
+    if('BarcodeDetector' in window){
+      try{
+        const det=new window.BarcodeDetector({formats:['qr_code']});
+        const codes=await det.detect(bmp);
+        if(codes&&codes.length)text=codes[0].rawValue;
+      }catch(_){}
+    }
+    if(!text){
+      const jsqr=await loadJsQR();
+      const c=document.createElement('canvas');c.width=bmp.width;c.height=bmp.height;
+      const x=c.getContext('2d',{willReadFrequently:true});
+      x.drawImage(bmp,0,0);
+      const img=x.getImageData(0,0,c.width,c.height);
+      const r=jsqr(img.data,img.width,img.height);
+      if(r)text=r.data;
+    }
+    const hit=text?parseUpiQR(text):null;
+    if(!hit){scanMsg('No UPI QR found in that photo.',true);return;}
+    onQRFound(hit);
+  }catch(err){
+    scanMsg('Couldn’t read that photo.',true);
+  }
+});
+
+/* ================= converter =================
+   Same live table the rest of the app uses, so a conversion here and a
+   conversion on an entry can never disagree. */
+let cvFrom='INR', cvTo='USD';
+function renderCvGrid(which){
+  const g=$(which==='from'?'#cvFromGrid':'#cvToGrid');if(!g)return;
+  const sel=which==='from'?cvFrom:cvTo;
+  g.innerHTML='';
+  const order=[baseCur].concat(CUR_CODES.filter(c=>c!==baseCur));
+  order.forEach(code=>{
+    const c=curMeta(code);
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='cur-opt'+(sel===code?' on':'');
+    b.innerHTML='<span class="co-sym">'+esc(c.sym)+'</span>'+esc(code);
+    b.title=c.name;
+    b.addEventListener('click',()=>{
+      if(which==='from')cvFrom=code;else cvTo=code;
+      renderCvGrid(which);runConvert();
+    });
+    g.appendChild(b);
+  });
+}
+function runConvert(){
+  const raw=parseFloat(String($('#cvAmt').value).replace(/[^\d.]/g,''));
+  const amt=isNaN(raw)?0:raw;
+  $('#cvFromBtn').textContent=curMeta(cvFrom).sym;
+  $('#cvFromCode').textContent=cvFrom;
+  $('#cvToCode').textContent=cvTo;
+  const rate=fxRateBetween(cvFrom,cvTo);
+  $('#cvOut').textContent=amt>0?fmtCur(roundMoney(amt*rate,cvTo),cvTo):'—';
+  $('#cvRate').textContent='1 '+cvFrom+' = '+fmtRate(rate,cvTo)+
+                           '   ·   1 '+cvTo+' = '+fmtRate(fxRateBetween(cvTo,cvFrom),cvFrom);
+  /* the same amount in the handful you're most likely to want at a glance */
+  const glance=$('#cvGlance');glance.innerHTML='';
+  if(amt>0){
+    const picks=[baseCur,'USD','EUR','JPY','GBP','AED']
+      .filter((c,i,a)=>a.indexOf(c)===i&&c!==cvFrom).slice(0,6);
+    picks.forEach(code=>{
+      const d=document.createElement('div');d.className='cv-g';
+      d.innerHTML='<span class="cg-k">'+esc(code)+'</span><span class="cg-v">'+
+        esc(fmtCur(roundMoney(amt*fxRateBetween(cvFrom,code),code),code))+'</span>';
+      glance.appendChild(d);
+    });
+  }
+  $('#cvHint').textContent=fxNote();
+}
+function openConverter(amount,from,to){
+  if(from)cvFrom=from;
+  if(to)cvTo=to;
+  if(cvTo===cvFrom)cvTo=CUR_CODES.find(c=>c!==cvFrom)||'USD';
+  $('#cvAmt').value=amount!=null&&amount>0?String(Math.round(amount*100)/100):'';
+  renderCvGrid('from');renderCvGrid('to');runConvert();
+  openSheet('Conv');
+}
+$('#cvAmt').addEventListener('input',runConvert);
+$('#cvSwap').addEventListener('click',()=>{
+  const a=cvFrom;cvFrom=cvTo;cvTo=a;
+  renderCvGrid('from');renderCvGrid('to');runConvert();
+});
+$('#cvFromBtn').addEventListener('click',()=>$('#cvFromGrid').scrollIntoView({block:'nearest',behavior:'smooth'}));
+$('#scrimConv').addEventListener('click',()=>closeSheet('Conv'));
+$('#btnConverter').addEventListener('click',()=>openConverter(null,baseCur,cvTo==='INR'?'USD':cvTo));
+/* tapping the balance answers "how much is that in yen?" without changing any setting */
+$('#balTotal').classList.add('flip');
+$('#balTotal').addEventListener('click',()=>openConverter(Math.abs(sums().total),baseCur,cvTo===baseCur?'USD':cvTo));
 
 /* ================= search =================
    Every label an entry carries is searchable, not just the note: category,
@@ -2525,25 +3165,55 @@ $('#pfDelete').addEventListener('click',async ()=>{
 });
 function openPaySheet(id){
   const p=people.find(x=>x.id===id);if(!p)return;
-  payTargetId=id;
+  payTargetId=id;payAdhoc=null;
   $('#payName').textContent=p.name;
   $('#payUpi').textContent=p.upi;
   $('#payAmt').value='';$('#payNote').value='';
+  $('#btnSavePayee').style.display='none';
   renderPayAppChips();
   openSheet('Pay');
   setTimeout(()=>{try{$('#payAmt').focus();}catch(e){}},350);
 }
+/* a scanned payee isn't in the people list — pay them without saving first */
+function openPaySheetAdhoc(hit){
+  payTargetId=null;payAdhoc={upi:hit.pa,name:hit.pn};
+  $('#payName').textContent=hit.pn;
+  $('#payUpi').textContent=hit.pa;
+  $('#payAmt').value=hit.am>0?String(hit.am):'';
+  $('#payNote').value=hit.tn||'';
+  $('#btnSavePayee').style.display='';
+  renderPayAppChips();
+  openSheet('Pay');
+  toast(hit.am>0?'Scanned — check the amount':'Scanned — enter the amount');
+  setTimeout(()=>{try{$('#payAmt').focus();}catch(e){}},350);
+}
 $('#scrimPay').addEventListener('click',()=>closeSheet('Pay'));
+$('#btnSavePayee').addEventListener('click',async ()=>{
+  if(!payAdhoc)return;
+  if(people.some(x=>x.upi.toLowerCase()===payAdhoc.upi.toLowerCase()))return toast('Already saved');
+  const name=(prompt('Save this payee as:',payAdhoc.name)||'').trim();
+  if(!name)return;
+  const rec={id:uid(),name,upi:payAdhoc.upi};
+  people.push(rec);await savePeople();
+  payTargetId=rec.id;payAdhoc=null;
+  $('#payName').textContent=name;
+  $('#btnSavePayee').style.display='none';
+  renderPay();
+  toast(name+' saved');
+});
 $('#btnDoPay').addEventListener('click',async ()=>{
-  const p=people.find(x=>x.id===payTargetId);
+  const saved=people.find(x=>x.id===payTargetId);
+  const p=saved||payAdhoc;                       // saved person, or a scanned payee
   if(!p)return toast('Pick someone to pay');
   const amt=parseFloat(String($('#payAmt').value).replace(/[^\d.]/g,''));
   if(!amt||amt<=0)return toast('Enter the amount first');
-  if(!UPI_RE.test(p.upi))return toast('That saved UPI ID looks broken — edit it first');
+  if(!UPI_RE.test(p.upi))return toast('That UPI ID looks broken — check it');
   const note=$('#payNote').value.trim();
   const amount=Math.round(amt*100)/100;
   /* record it FIRST, so the payment is in the ledger even if they back out of the UPI app */
-  const rec={id:uid(),ts:Date.now(),type:'out',wallet:'upi',amount,note,personId:p.id};
+  const rec={id:uid(),ts:Date.now(),type:'out',wallet:'upi',amount,note,
+             cur:'INR',fxRate:1,baseAmount:amount};
+  if(saved)rec.personId=saved.id;else rec.payeeUpi=p.upi;
   await dbPut(rec);
   entries.push(rec);
   closeSheet('Pay');renderAll();snapshotSoon();
@@ -2563,7 +3233,7 @@ document.querySelectorAll('.tab').forEach(t=>{
     /* scroll to top FIRST, while the outgoing view is still full height —
        hiding a taller view before the scroll resets forces the browser to
        clamp scrollTop mid-swap, which is what made the tab bar visibly jump */
-    window.scrollTo(0,0);
+    scrollTop0();
     closeOpenSwipe();                    // don't leave a row swiped open on the tab you left
     document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t));
     document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -2821,6 +3491,35 @@ $('#btnHideEntry').addEventListener('click',async ()=>{
 });
 
 /* ================= opening cash ================= */
+function reserveLabel(){
+  const el=$('#reserveVal');if(el)el.textContent=fmtCur(safeReserve,baseCur);
+}
+$('#btnReserve').addEventListener('click',()=>{
+  const cur=safeReserve?String(safeReserve):'';
+  const v=prompt('Hold back how much as a cushion?\n\nThis is subtracted before the daily "safe to spend" figure is worked out, so an emergency buffer never shows up as spendable.\n\nAmount in '+baseCur+' (0 for none):',cur);
+  if(v===null)return;
+  const n=parseFloat(String(v).replace(/[^\d.]/g,''));
+  if(isNaN(n)||n<0)return toast('Enter a number, or 0 for none');
+  safeReserve=Math.round(n*100)/100;
+  dbMetaPut('safeReserve',safeReserve);
+  reserveLabel();renderHome();
+  toast(safeReserve?('Holding back '+fmtCur(safeReserve,baseCur)):'Reserve cleared');
+});
+$('#btnStsInfo').addEventListener('click',()=>{
+  const r=safeToSpend();
+  const line=(k,v)=>k+': '+fmtCur(Math.round(v),baseCur);
+  alert('Safe to spend today\n\n'+
+    'Everything you hold, minus the bills still coming this month, minus your reserve — '+
+    'spread evenly over the days left, then minus what today has already taken.\n\n'+
+    line('Balance',r.balance)+'\n'+
+    line('− Recurring still due',r.dues)+'\n'+
+    line('− Your reserve',r.reserve)+'\n'+
+    '= '+fmtCur(Math.round(r.pool),baseCur)+' over '+r.daysLeft+' day'+(r.daysLeft===1?'':'s')+'\n'+
+    line('Daily pace',r.perDay)+'\n'+
+    line('− Spent today',r.spentToday)+'\n\n'+
+    '= '+fmtCur(Math.round(r.leftToday),baseCur)+' left for today.\n\n'+
+    'Change the reserve under Settings → Money & bills.');
+});
 $('#btnOpening').addEventListener('click',()=>{
   openAdd(null);
   addType='in';fSource='pocket';fWallet='cash';fNoDeduct=false;
@@ -3530,6 +4229,8 @@ function showPinGate(){
   const rc=await dbMetaGet('recurrings');if(Array.isArray(rc))recurrings=rc;
   const pp=await dbMetaGet('people');if(Array.isArray(pp))people=pp;
   const ua=await dbMetaGet('preferredUpiApp');if(ua&&UPI_APPS[ua])preferredUpiApp=ua;
+  const sr=await dbMetaGet('safeReserve');if(typeof sr==='number'&&sr>=0)safeReserve=sr;
+  reserveLabel();
   const bc=await dbMetaGet('baseCur');if(bc&&CURRENCIES[bc])baseCur=bc;
   const fx=await dbMetaGet('fx');
   if(fx&&fx.rates){RATES=Object.assign({},FALLBACK_RATES,fx.rates);fxUpdatedAt=fx.at||0;}
