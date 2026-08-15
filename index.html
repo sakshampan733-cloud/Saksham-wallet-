@@ -550,11 +550,17 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
 .whatsnew{position:fixed;inset:0;z-index:920;background:rgba(0,0,0,.45);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:26px;animation:wnFade .3s ease}
 .whatsnew.on{display:flex}
 @keyframes wnFade{from{opacity:0}to{opacity:1}}
-.wn-card{background:var(--bg);border:1px solid var(--line-strong);border-radius:20px;padding:24px 22px;max-width:340px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,.35);animation:wnPop .42s cubic-bezier(.22,1.2,.4,1)}
+/* Column layout with a scrolling middle: however many items land here, the
+   header and the Got it button stay put and the list takes the leftover room.
+   Without this a long list pushed the button off the bottom of the phone. */
+.wn-card{background:var(--bg);border:1px solid var(--line-strong);border-radius:20px;padding:24px 22px;max-width:340px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,.35);animation:wnPop .42s cubic-bezier(.22,1.2,.4,1);
+  display:flex;flex-direction:column;max-height:calc(100dvh - 52px)}
 @keyframes wnPop{from{transform:translateY(16px) scale(.96);opacity:0}to{transform:none;opacity:1}}
-.wn-card .wn-kicker{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);font-weight:700}
-.wn-card .wn-ver{font-family:'Archivo',sans-serif;font-size:22px;font-weight:700;margin-top:6px;letter-spacing:-.01em}
-.wn-card .wn-list{list-style:none;margin:16px 0 20px;padding:0;display:flex;flex-direction:column;gap:11px}
+.wn-card .wn-kicker{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);font-weight:700;flex:0 0 auto}
+.wn-card .wn-ver{font-family:'Archivo',sans-serif;font-size:22px;font-weight:700;margin-top:6px;letter-spacing:-.01em;flex:0 0 auto}
+.wn-card #wnGotIt{flex:0 0 auto}
+.wn-card .wn-list{list-style:none;margin:16px 0 20px;padding:0 2px 0 0;display:flex;flex-direction:column;gap:11px;
+  flex:1 1 auto;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .wn-card .wn-list li{position:relative;padding-left:20px;font-size:13.5px;line-height:1.5;color:var(--ink)}
 .wn-card .wn-list li::before{content:'';position:absolute;left:2px;top:8px;width:6px;height:6px;border-radius:50%;background:var(--thumb)}
 
@@ -1643,21 +1649,18 @@ function dbSnapDel(ts){return new Promise(res=>{if(!db)return res();try{const tx
 let entries=[];           // {id,ts,type,wallet:cash|upi|credit|debit,amount,note,cat?,source?,who?,from?,acct?,hidden?}
 // ===== version + what's-new =====
 const APP_VERSION='2.9';
+/* ONLY the current release goes here — REPLACE these items each version, never
+   append. This card is a "since you last opened" note, not a changelog; older
+   versions' items have already been seen and just make it unreadable.
+   Keep it to about five lines so it always fits on a phone. */
 const WHATS_NEW={
   version:'2.9',
   items:[
-    'Safe to spend today — the number on Home that answers "can I actually buy this?". Your balance, minus the bills still due this month, minus your reserve, spread over the days left, minus what today has already taken. Tap ? for the working; set a reserve under Settings → Money & bills.',
-    'Scan a UPI QR from the Pay tab — point at any shop code and the payee and amount fill themselves in, then it hands off to your UPI app as before.',
-    'A calculator that stays out of the way — the small = puck above the tab bar. Open it while entering an amount and it offers to drop the answer straight in.',
+    'Safe to spend today — the number on Home that answers "can I actually buy this?". Your balance, minus the bills still due this month, minus your reserve, spread over the days left, minus what today has already taken. Tap ? for the working.',
+    'Scan a UPI QR from the Pay tab — point at any shop code and the payee and amount fill themselves in.',
+    'A calculator that stays out of the way — the small = puck above the tab bar. Open it while entering an amount and it drops the answer straight in.',
     'Tap a foreign amount to flip between what you paid and what it cost you. Tap your balance for a full currency converter.',
-    'The tab bar no longer drifts up and down as you move between tabs.',
-    'Multi-currency — tap the ₹ badge on the amount field to record a spend in dollars, yen, baht or 19 other currencies. It converts at that day’s rate, shows both figures on the entry, and your totals stay in one currency (change it under Settings → Money & bills).',
-    'Swipe any entry left for Hide and Delete, and search by date — try “yesterday”, “july” or “last month”.',
-    'Search — the ⌕ button in the header. Type a few letters and it finds any entry by item, category, account, whose money it was, who you paid, or the amount.',
-    'New Pay tab — save the people you send money to, then pay them from here. The wallet records the entry and hands the amount to your own UPI app; you still approve it there. It never moves money itself.',
-    'Scan a receipt on the New entry screen — take a photo of the bill or pick one from your gallery, and the amount, shop and date are read off it for you to check before saving. Runs entirely on your phone.',
-    'Rewind — once a month (or once a year, your choice) the wallet shows you a wrap-up of where the money went.',
-    'Settings replaces More, grouped into six sections instead of one long scroll. Card spends now say "Credit card" rather than "UPI", and they finally show up under the Bank · Card filter.'
+    'The tab bar no longer drifts up and down as you move between tabs.'
   ]
 };
 let ledgerFilter='all';
@@ -3918,7 +3921,13 @@ function maybeShowWhatsNew(){
   };
   wait();
 }
-$('#wnGotIt').addEventListener('click',()=>{markWhatsNewSeen();$('#whatsNew').classList.remove('on');});
+function dismissWhatsNew(){markWhatsNewSeen();$('#whatsNew').classList.remove('on');}
+$('#wnGotIt').addEventListener('click',dismissWhatsNew);
+/* escape hatches, so this card can never trap the app: tap outside it, or Esc */
+$('#whatsNew').addEventListener('click',e=>{if(e.target===$('#whatsNew'))dismissWhatsNew();});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&$('#whatsNew').classList.contains('on'))dismissWhatsNew();
+});
 
 /* ================= rewind =================
    Same show-once gating as what's-new, but keyed to the period instead of the
