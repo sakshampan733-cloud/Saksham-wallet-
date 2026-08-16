@@ -56,12 +56,13 @@
   --rule:rgba(226,69,69,.09);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html{height:100%}
+html{height:100%;background:var(--bg)}   /* painted behind the shell so no strip shows */
 /* App shell: the PAGE never scrolls, #scroller does. On a phone that stops the
    browser URL bar collapsing and expanding, which was changing the viewport
    height and making the fixed tab pill ride up and down between tabs. */
 body{
   height:100%;
+  height:100dvh;          /* tracks the live viewport, so the shell fills the screen */
   overflow:hidden;
   background:var(--bg);
   color:var(--ink);
@@ -71,7 +72,10 @@ body{
   overflow-x:hidden;
   overscroll-behavior:none;
   transition:background .4s ease, color .4s ease;
-  --tabbar-h:calc(60px + 11px + env(safe-area-inset-bottom));
+  /* max(), NOT + : on a phone with a home indicator the inset is already ~34px,
+     so adding another 11 left a dead band under the pill */
+  --tab-gap:max(9px, env(safe-area-inset-bottom,0px));
+  --tabbar-h:calc(60px + var(--tab-gap));
 }
 #scroller{
   height:100%;
@@ -437,7 +441,7 @@ nav.tabbar{
   position:fixed;z-index:50;display:flex;align-items:center;gap:4px;
   left:max(12px,env(safe-area-inset-left,0px));
   right:max(12px,env(safe-area-inset-right,0px));
-  bottom:calc(11px + env(safe-area-inset-bottom,0px));
+  bottom:var(--tab-gap);
   height:60px;padding:6px;border-radius:999px;
   background:var(--glass);
   backdrop-filter:blur(26px) saturate(180%);
@@ -677,8 +681,8 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
 /* ---------- floating calculator ----------
    Collapsed it's a small puck above the tab bar; open it grows into a pad.
    z-index sits above sheets so it can be used while typing an amount. */
-.calc{position:fixed;right:16px;z-index:80;bottom:calc(var(--tabbar-h) + 74px);}
-body.sheet-open .calc{bottom:calc(var(--tabbar-h) + 12px)}   /* fab is hidden behind a sheet */
+/* left edge, opposite the + button — on the right they sat 2px apart and overlapped */
+.calc{position:fixed;left:16px;z-index:80;bottom:calc(var(--tabbar-h) + 16px);}
 .calc-fab{
   width:46px;height:46px;border-radius:15px;
   display:flex;align-items:center;justify-content:center;
@@ -691,11 +695,11 @@ body.sheet-open .calc{bottom:calc(var(--tabbar-h) + 12px)}   /* fab is hidden be
 .calc-fab:active{transform:scale(.9)}
 .calc.open .calc-fab{opacity:0;pointer-events:none;transform:scale(.6)}
 .calc-panel{
-  position:absolute;right:0;bottom:0;width:250px;
+  position:absolute;left:0;bottom:0;width:250px;max-width:calc(100vw - 32px);
   padding:12px;border-radius:20px;
   background:var(--card);border:1.5px solid var(--line-strong);
   box-shadow:0 18px 46px rgba(0,0,0,.34);
-  transform-origin:bottom right;
+  transform-origin:bottom left;
   transform:scale(.5);opacity:0;pointer-events:none;
   transition:transform .26s cubic-bezier(.22,1,.36,1), opacity .18s;
 }
@@ -773,8 +777,9 @@ body.sheet-open .calc{bottom:calc(var(--tabbar-h) + 12px)}   /* fab is hidden be
 .cv-g .cg-k{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--muted)}
 .cv-g .cg-v{font-size:12.5px;font-weight:700;font-family:'IBM Plex Mono',monospace}
 /* an amount you can tap to flip between what you paid and your own currency */
-.e-amt.flip,.bal-amount.flip{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;
+.e-amt.flip,.bal-amount.flip,.cv-tap{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;
   text-underline-offset:3px;text-decoration-color:var(--line-strong)}
+.cv-tap:active{opacity:.6}
 .e-amt.flipped{opacity:.92}
 
 /* ---------- safe to spend ---------- */
@@ -952,9 +957,9 @@ body.sheet-open .calc{bottom:calc(var(--tabbar-h) + 12px)}   /* fab is hidden be
     </div>
 
     <div class="stat-row">
-      <div class="stat"><div class="st-k">Spent · month</div><div class="st-v neg mono" id="stSpent">₹0</div></div>
-      <div class="stat"><div class="st-k">For others</div><div class="st-v vio mono" id="stOthers">₹0</div></div>
-      <div class="stat"><div class="st-k">Received</div><div class="st-v pos mono" id="stIn">₹0</div></div>
+      <div class="stat"><div class="st-k">Spent · month</div><div class="st-v neg mono cv-tap" id="stSpent">₹0</div></div>
+      <div class="stat"><div class="st-k">For others</div><div class="st-v vio mono cv-tap" id="stOthers">₹0</div></div>
+      <div class="stat"><div class="st-k">Received</div><div class="st-v pos mono cv-tap" id="stIn">₹0</div></div>
     </div>
 
     <div class="section-head">
@@ -2321,12 +2326,17 @@ function safeToSpend(){
   const balance=sums().total;   // sums() exposes {cash, upi, total}
   const dues=duesAhead(today+86400000,endTs);                        // tomorrow → month end
   const reserve=safeReserve;
-  const pool=balance-dues-reserve;
-  const perDay=pool/daysLeft;
-
   const spentToday=entries.filter(e=>!e.hidden&&!e.noDeduct&&e.type==='out'&&startOfDay(e.ts)===today)
                           .reduce((n,e)=>n+baseOf(e),0);
-  return {balance,dues,reserve,daysLeft,pool,perDay,spentToday,
+  /* Pace off the balance as it stood at the START of today. `balance` is live
+     and already has today's spending taken out, so pacing off it and then
+     subtracting spentToday again would charge today twice. */
+  const pool=(balance+spentToday)-dues-reserve;
+  const perDay=pool/daysLeft;
+  /* Tomorrow's pace, from what's actually left — this is what makes overspending
+     self-correcting instead of resetting each morning. */
+  const tomorrowPerDay=daysLeft>1?((balance-dues-reserve)/(daysLeft-1)):null;
+  return {balance,dues,reserve,daysLeft,pool,perDay,spentToday,tomorrowPerDay,
           leftToday:perDay-spentToday, monthEnd:endTs};
 }
 function renderSafeToSpend(){
@@ -2343,8 +2353,13 @@ function renderSafeToSpend(){
   bits.push(fmtCur(Math.round(r.spentToday),baseCur)+' spent today');
   bits.push(r.daysLeft+(r.daysLeft===1?' day left':' days left'));
   let msg=bits.join(' · ');
-  if(r.pool<=0)msg='Your balance won’t cover the bills still due this month. '+msg;
-  else if(left<0)msg='Over today’s pace by '+fmtCur(Math.abs(Math.round(left)),baseCur)+'. '+msg;
+  if(r.pool<=0){
+    msg='Your balance won’t cover the bills still due this month. '+msg;
+  } else if(left<0){
+    /* say what overspending actually costs — tomorrow's pace, not a scolding */
+    msg='Over today’s pace by '+fmtCur(Math.abs(Math.round(left)),baseCur)+'. '+
+        (r.tomorrowPerDay!=null?'Tomorrow becomes '+fmtCur(Math.round(r.tomorrowPerDay),baseCur)+'/day. ':'')+msg;
+  }
   $('#stsSub').textContent=msg;
 }
 function collectDue(){
@@ -2490,9 +2505,9 @@ function renderAcctList(){
   const allF=acctFigures('__all');
   const untagged=visible().filter(e=>!e.acct).length;
   const all=document.createElement('div');all.className='acct-card all';
-  all.innerHTML='<div class="ac-top"><span class="ac-name">All accounts</span><span class="ac-net mono">'+fmtSigned(allF.net)+'</span></div>'+
-    '<div class="ac-sub"><span class="ac-stat">Received<b class="mono">'+fmtSigned(allF.inAmt)+'</b></span>'+
-    '<span class="ac-stat">Spent<b class="mono">'+fmtSigned(allF.outAmt)+'</b></span>'+
+  all.innerHTML='<div class="ac-top"><span class="ac-name">All accounts</span><span class="ac-net mono cv-tap" data-amt="'+allF.net+'">'+fmtSigned(allF.net)+'</span></div>'+
+    '<div class="ac-sub"><span class="ac-stat">Received<b class="mono cv-tap" data-amt="'+allF.inAmt+'">'+fmtSigned(allF.inAmt)+'</b></span>'+
+    '<span class="ac-stat">Spent<b class="mono cv-tap" data-amt="'+allF.outAmt+'">'+fmtSigned(allF.outAmt)+'</b></span>'+
     '<span class="ac-stat">Accounts<b>'+accounts.length+'</b></span></div><span class="ac-arrow">→</span>';
   all.addEventListener('click',()=>{scrollTop0();acctSel='__all';acctView='detail';renderAccounts();});
   host.appendChild(all);
@@ -2503,9 +2518,9 @@ function renderAcctList(){
   accounts.forEach(a=>{
     const f=acctFigures(a.id);
     const c=document.createElement('div');c.className='acct-card';
-    c.innerHTML='<div class="ac-top"><span class="ac-name">'+esc(a.label)+'</span><span class="ac-net mono">'+fmtSigned(f.net)+'</span></div>'+
-      '<div class="ac-sub"><span class="ac-stat">Received<b class="mono">'+fmtSigned(f.inAmt)+'</b></span>'+
-      '<span class="ac-stat">Spent<b class="mono">'+fmtSigned(f.outAmt)+'</b></span>'+
+    c.innerHTML='<div class="ac-top"><span class="ac-name">'+esc(a.label)+'</span><span class="ac-net mono cv-tap" data-amt="'+f.net+'">'+fmtSigned(f.net)+'</span></div>'+
+      '<div class="ac-sub"><span class="ac-stat">Received<b class="mono cv-tap" data-amt="'+f.inAmt+'">'+fmtSigned(f.inAmt)+'</b></span>'+
+      '<span class="ac-stat">Spent<b class="mono cv-tap" data-amt="'+f.outAmt+'">'+fmtSigned(f.outAmt)+'</b></span>'+
       '<span class="ac-stat">Entries<b>'+f.cnt+'</b></span></div><span class="ac-arrow">→</span>';
     c.addEventListener('click',()=>{scrollTop0();acctSel=a.id;acctView='detail';renderAccounts();});
     host.appendChild(c);
@@ -2518,9 +2533,9 @@ function renderAcctDetail(id){
   const list=visible().filter(e=>isAll?e.acct:e.acct===id).sort((a,b)=>b.ts-a.ts);
   const body=$('#acctDetailBody');
   let html='<div class="acct-hero"><div class="ah-label">'+esc(label)+' · net left</div>'+
-    '<div class="ah-net">'+fmtSigned(f.net)+'</div>'+
-    '<div class="ah-figs"><div class="ah-fig"><div class="ahf-k">Received</div><div class="ahf-v">'+fmtSigned(f.inAmt)+'</div></div>'+
-    '<div class="ah-fig"><div class="ahf-k">Spent</div><div class="ahf-v">'+fmtSigned(f.outAmt)+'</div></div>'+
+    '<div class="ah-net cv-tap" data-amt="'+f.net+'">'+fmtSigned(f.net)+'</div>'+
+    '<div class="ah-figs"><div class="ah-fig"><div class="ahf-k">Received</div><div class="ahf-v cv-tap" data-amt="'+f.inAmt+'">'+fmtSigned(f.inAmt)+'</div></div>'+
+    '<div class="ah-fig"><div class="ahf-k">Spent</div><div class="ahf-v cv-tap" data-amt="'+f.outAmt+'">'+fmtSigned(f.outAmt)+'</div></div>'+
     '<div class="ah-fig"><div class="ahf-k">Entries</div><div class="ahf-v">'+f.cnt+'</div></div></div></div>';
   // breakdowns
   const agg=(arr,keyFn,labelFn)=>{const m={};arr.forEach(e=>{const k=keyFn(e);if(!m[k])m[k]={label:labelFn(k),amt:0,cnt:0};m[k].amt+=baseOf(e);m[k].cnt++;});return Object.values(m).sort((x,y)=>y.amt-x.amt);};
@@ -2915,6 +2930,24 @@ $('#btnConverter').addEventListener('click',()=>openConverter(null,baseCur,cvTo=
 /* tapping the balance answers "how much is that in yen?" without changing any setting */
 $('#balTotal').classList.add('flip');
 $('#balTotal').addEventListener('click',()=>openConverter(Math.abs(sums().total),baseCur,cvTo===baseCur?'USD':cvTo));
+
+/* Any figure marked .cv-tap opens the converter with that number already in —
+   account nets, per-account received/spent, the month stats. Delegated, because
+   these get re-rendered constantly; data-amt carries the raw value so we never
+   have to unpick a formatted string. */
+document.addEventListener('click',e=>{
+  const el=e.target.closest('.cv-tap');
+  if(!el)return;
+  e.stopPropagation();                    // account cards are themselves tappable
+  let v=el.dataset.amt;
+  if(v===undefined){                      // month stats read their own live figures
+    const m=monthStats();
+    v=el.id==='stSpent'?m.spent:(el.id==='stOthers'?m.others:(el.id==='stIn'?m.inc:0));
+  }
+  /* a zero figure still opens it — an account can net out to nothing while you
+     still want to convert what you spent */
+  openConverter(Math.abs(Number(v)||0),baseCur,cvTo===baseCur?'USD':cvTo);
+},true);
 
 /* ================= search =================
    Every label an entry carries is searchable, not just the note: category,
@@ -3521,7 +3554,11 @@ $('#btnStsInfo').addEventListener('click',()=>{
     line('Daily pace',r.perDay)+'\n'+
     line('− Spent today',r.spentToday)+'\n\n'+
     '= '+fmtCur(Math.round(r.leftToday),baseCur)+' left for today.\n\n'+
-    'Change the reserve under Settings → Money & bills.');
+    'If you spend more than this, nothing is blocked — the figure just goes red. '+
+    'What actually happens is that tomorrow it recalculates from the money you '+
+    'really have left, so the rest of the month gets a little tighter'+
+    (r.tomorrowPerDay!=null?' — tomorrow would be '+fmtCur(Math.round(r.tomorrowPerDay),baseCur)+'/day.':'.')+
+    '\n\nIt resets each month, and the reserve is under Settings → Money & bills.');
 });
 $('#btnOpening').addEventListener('click',()=>{
   openAdd(null);
