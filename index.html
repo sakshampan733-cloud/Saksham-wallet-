@@ -1151,6 +1151,14 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
           <div>Load demo data<small>Fills the wallet with a worked example — accounts, cards, whose-money, a hidden entry — so you can see every feature. Erase it anytime.</small></div>
           <span class="arrow">→</span>
         </div>
+        <div class="set-row" id="btnOffline">
+          <div>Offline<small>The wallet stores itself on your device so it opens with no signal. Tap for what does and doesn't need a connection.</small></div>
+          <span class="arrow" id="offlineVal">—</span>
+        </div>
+        <div class="set-row" id="btnClearCache">
+          <div>Refetch the app<small>Forces a fresh copy if an update hasn't come through. Your entries are not touched.</small></div>
+          <span class="arrow">→</span>
+        </div>
         <div class="set-row" id="btnAbout">
           <div>What's new<small id="aboutSub">Version 2.7</small></div>
           <span class="arrow">→</span>
@@ -2642,6 +2650,85 @@ $('#btnFxRefresh').addEventListener('click',async ()=>{
 });
 $('#btnPrivacyRow').addEventListener('click',()=>{
   privacyHidden=!privacyHidden;dbMetaPut('privacyHidden',privacyHidden);applyPrivacy();
+});
+
+/* ================= offline =================
+   The service worker (sw.js, alongside this file) keeps the app usable with
+   no signal. Registration is guarded: it needs http/https, so opening this
+   file straight off the disk simply skips it rather than erroring. */
+let swReg=null, offlineReady=false;
+function offlineSupported(){
+  return 'serviceWorker' in navigator && location.protocol.startsWith('http');
+}
+function registerSW(){
+  if(!offlineSupported())return;
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    swReg=reg;
+    offlineReady=!!navigator.serviceWorker.controller;
+    offlineLabel();
+    /* a newer upload finished downloading in the background */
+    reg.addEventListener('updatefound',()=>{
+      const w=reg.installing;
+      if(!w)return;
+      w.addEventListener('statechange',()=>{
+        if(w.state==='installed'&&navigator.serviceWorker.controller){
+          toast('Update ready — reopen the app to use it');
+        }
+        offlineLabel();
+      });
+    });
+  }).catch(()=>{ offlineLabel(); });
+  navigator.serviceWorker.addEventListener('message',e=>{
+    if(e.data&&e.data.type==='CLEARED'){
+      toast('Cache cleared — reloading');
+      setTimeout(()=>location.reload(),600);
+    }
+  });
+}
+function offlineLabel(){
+  const el=$('#offlineVal');if(!el)return;
+  if(!offlineSupported()){el.textContent='n/a';return;}
+  el.textContent=(offlineReady||navigator.serviceWorker.controller)?'Ready':'Setting up';
+}
+/* a quiet nudge, once per drop — the app keeps working, it just can't fetch rates */
+let _wasOffline=!navigator.onLine;
+window.addEventListener('offline',()=>{
+  _wasOffline=true;
+  toast('Offline — the wallet keeps working, rates stay as they were');
+});
+window.addEventListener('online',()=>{
+  if(!_wasOffline)return;
+  _wasOffline=false;
+  toast('Back online');
+  refreshRates(false).then(ok=>{if(ok){fxLabel();renderAll();}}).catch(()=>{});
+});
+$('#btnOffline').addEventListener('click',()=>{
+  if(!offlineSupported())
+    return alert('Offline mode needs the app to be opened from a web address (https://…), not from a file on the device.\n\nOnce it is hosted, the wallet stores itself on first visit and opens with no signal after that.');
+  const lines=[
+    'Offline: '+((offlineReady||navigator.serviceWorker.controller)?'ready — the app opens with no signal':'still setting up, reopen once'),
+    '',
+    'What works with no signal:',
+    '  · everything you record, edit, search and export',
+    '  · your balances, accounts and Rewind',
+    '  · currency conversion, at the last rates fetched',
+    '',
+    'What needs signal:',
+    '  · refreshing exchange rates',
+    '  · reading a receipt or a QR the very first time (the reader downloads once, then works offline)',
+    '',
+    'Tap OK to check for an update now.'
+  ];
+  if(!confirm(lines.join('\n')))return;
+  if(swReg&&swReg.update){
+    swReg.update().then(()=>toast('Checked for updates')).catch(()=>toast('Couldn’t check — no signal?'));
+  }
+});
+$('#btnClearCache').addEventListener('click',()=>{
+  if(!offlineSupported())return toast('Nothing cached');
+  if(!armConfirm('clearCache','Tap again — this refetches the app, your entries are untouched'))return;
+  if(navigator.serviceWorker.controller)navigator.serviceWorker.controller.postMessage({type:'CLEAR'});
+  else{caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).then(()=>location.reload());}
 });
 
 /* ================= floating calculator =================
@@ -4299,6 +4386,7 @@ function showPinGate(){
   }
   renderAll();
   setTimeout(()=>document.body.classList.add('settled'),900);
+  registerSW();
   // catch up any recurring payments due since last open — ask before logging each
   if(!pinCode){ dueQueue=collectDue(); if(dueQueue.length)setTimeout(showDueQueue,700); }
   maybeShowWhatsNew();
