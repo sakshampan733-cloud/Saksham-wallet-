@@ -212,7 +212,8 @@ main{padding:8px 18px calc(var(--tabbar-h) + 30px);max-width:760px;margin:0 auto
 .e-badge.in{background:var(--pos-soft);color:var(--pos)}
 .e-badge.other{background:var(--violet-soft);color:var(--violet)}
 .e-main{flex:1;min-width:0}
-.e-title{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.e-title{font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:6px;min-width:0}
+.e-title .t-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .e-meta{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:.04em}
 .e-amt{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;flex:0 0 auto}
 .e-amt.out{color:var(--neg)}
@@ -307,6 +308,7 @@ main{padding:8px 18px calc(var(--tabbar-h) + 30px);max-width:760px;margin:0 auto
 .scrim.open{opacity:1;pointer-events:auto}
 .sheet{
   position:fixed;left:0;right:0;bottom:0;z-index:70;
+  overflow-x:hidden;
   background:var(--bg);
   border-top:1px solid var(--line-strong);
   border-radius:24px 24px 0 0;
@@ -326,7 +328,8 @@ main{padding:8px 18px calc(var(--tabbar-h) + 30px);max-width:760px;margin:0 auto
   transition:transform .15s ease;
 }
 .sheet-close:active{transform:scale(.9)}
-.sheet-body{overflow-y:auto;padding:14px 22px calc(24px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+.sheet-body{overflow-y:auto;overflow-x:hidden;padding:14px 22px calc(24px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+.sheet-body>*{max-width:100%}          /* nothing inside may push the sheet sideways */
 .sheet-title{font-size:16px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;text-align:center;margin:8px 0 16px}
 @media(min-width:700px){
   .sheet{left:50%;right:auto;width:560px;transform:translate(-50%,105%)}
@@ -643,7 +646,7 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
 .nd-txt{display:flex; flex-direction:column; gap:2px}
 .nd-t{font-size:13.5px; font-weight:700; color:var(--ink)}
 .nd-s{font-size:11.5px; color:var(--muted); line-height:1.4}
-.entry .nd-tag{font-size:9px; letter-spacing:.06em; text-transform:uppercase; font-weight:800;
+.entry .nd-tag{flex:0 0 auto;font-size:9px; letter-spacing:.06em; text-transform:uppercase; font-weight:800;
   color:var(--muted); border:1px solid var(--line); border-radius:5px; padding:1px 5px; margin-left:6px; vertical-align:1px}
 
 /* ---------- receipt scan (add sheet) ---------- */
@@ -781,6 +784,53 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
   text-underline-offset:3px;text-decoration-color:var(--line-strong)}
 .cv-tap:active{opacity:.6}
 .e-amt.flipped{opacity:.92}
+
+/* ---------- transfer ---------- */
+.xf-wallets{display:grid;grid-template-columns:1fr;gap:6px}
+.xf-wk{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:6px}
+.xf-arrow{text-align:center;color:var(--muted);font-size:15px;line-height:1;margin:2px 0}
+.xf-preview{
+  border:1px solid var(--line-strong);border-radius:14px;background:var(--card-2);
+  padding:13px 15px;margin:4px 0 16px;font-size:12.5px;line-height:1.6;color:var(--muted);
+  text-align:center;
+}
+.xf-preview b{color:var(--ink);font-weight:700}
+.xf-preview.bad{border-color:var(--neg);color:var(--neg)}
+.e-badge.xfer{background:var(--line);color:var(--muted)}
+.e-amt.xfer{color:var(--muted)}
+
+/* ---------- automatic accounts ---------- */
+.sys-head{
+  font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);
+  font-weight:800;margin:22px 2px 10px;display:flex;align-items:center;gap:10px;
+}
+.sys-head::after{content:'';flex:1;height:1px;background:var(--line)}
+.acct-card.sys{border-style:dashed}
+.acct-card.sys .ac-net.vio{color:var(--violet)}
+.ac-blurb{font-size:11px;color:var(--muted);line-height:1.45;margin-top:9px;padding-right:24px}
+
+/* breakdown bars, shared by the automatic detail views */
+.bd-row{margin-bottom:14px}
+.bd-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.bd-k{font-size:13.5px;font-weight:600}
+.bd-v{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.bd-bar{height:5px;border-radius:3px;background:var(--line);margin-top:7px;overflow:hidden}
+.bd-bar>i{display:block;height:100%;border-radius:3px;background:var(--violet)}
+.bd-pct{font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:.1em;font-weight:700}
+
+/* whose-money person cards */
+.who-card{
+  border:1px solid var(--line-strong);border-radius:16px;
+  padding:15px 16px;margin-bottom:10px;background:var(--card);
+}
+.who-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.who-name{font-size:15px;font-weight:700}
+.who-left{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.who-left.neg{color:var(--neg)}
+.who-bar{height:5px;border-radius:3px;background:var(--line);margin:10px 0 9px;overflow:hidden}
+.who-bar>i{display:block;height:100%;border-radius:3px;background:var(--neg)}
+.who-sub{display:flex;flex-wrap:wrap;gap:14px;font-size:11px;color:var(--muted)}
+.who-sub b{display:block;color:var(--ink);font-size:12.5px;margin-top:2px;font-variant-numeric:tabular-nums}
 
 /* ---------- safe to spend ---------- */
 .sts-card{
@@ -980,7 +1030,12 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
   <!-- ============ ACCOUNTS ============ -->
   <section class="view" id="view-accounts">
     <div id="acctListView">
-      <div class="section-head"><div class="section-title">Accounts</div><button class="linklike" id="btnAddAcct">+ New account</button></div>
+      <div class="section-head"><div class="section-title">Accounts</div>
+        <div style="display:flex;gap:14px">
+          <button class="linklike" id="btnXfer">⇄ Transfer</button>
+          <button class="linklike" id="btnAddAcct">+ New account</button>
+        </div>
+      </div>
       <div id="acctCards"></div>
     </div>
     <div id="acctDetailView" style="display:none">
@@ -1057,7 +1112,7 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
           <span class="arrow">→</span>
         </div>
         <div class="set-row" id="btnReserve">
-          <div>Safe-to-spend reserve<small>A cushion held back from the daily figure on Home, so it never invites you to spend your last rupee.</small></div>
+          <div>Safe-to-spend reserve<small id="reserveSub">A cushion held back from the daily figure on Home, so it never invites you to spend your last rupee.</small></div>
           <span class="arrow" id="reserveVal">₹0</span>
         </div>
         <div class="set-row" id="btnBaseCur">
@@ -1461,6 +1516,36 @@ nav.tabbar.scrolling{transform:scale(.9);opacity:.88}
   </div>
 </div>
 
+<div class="scrim" id="scrimXfer"></div>
+<div class="sheet" id="sheetXfer">
+  <button class="sheet-close" data-close="Xfer" aria-label="Close">×</button>
+  <div class="sheet-grip"></div>
+  <div class="sheet-body">
+    <div class="sheet-title" id="xfSheetTitle">Transfer</div>
+    <div class="hint" style="margin-top:-6px">Moving your own money around. Your total never changes — only where it sits.</div>
+    <div class="field" style="margin-top:14px">
+      <label>Amount</label>
+      <div class="amount-wrap"><span class="cur" id="xfCur">₹</span><input class="amount-input" id="xfAmt" type="text" inputmode="decimal" placeholder="0" autocomplete="off"></div>
+    </div>
+    <div class="field"><label>From account</label><div class="opt-grid" id="xfFromGrid"></div></div>
+    <div class="field"><label>To account</label><div class="opt-grid" id="xfToGrid"></div></div>
+    <div class="field">
+      <label>Pocket <span style="opacity:.5;letter-spacing:.05em">— optional, for cash withdrawals</span></label>
+      <div class="xf-wallets">
+        <div><div class="xf-wk">Out of</div><div class="opt-grid" id="xfFromWallet"></div></div>
+        <div class="xf-arrow">↓</div>
+        <div><div class="xf-wk">Into</div><div class="opt-grid" id="xfToWallet"></div></div>
+      </div>
+    </div>
+    <div class="field"><label>Note <span style="opacity:.5;letter-spacing:.05em">— optional</span></label><input class="input" id="xfNote" placeholder="e.g. ATM withdrawal, moved to savings" maxlength="64" autocomplete="off"></div>
+    <div class="xf-preview" id="xfPreview"></div>
+    <div class="btn-row">
+      <button class="btn btn-line danger" id="btnDelXfer" style="display:none">Delete</button>
+      <button class="btn btn-solid" id="btnDoXfer">Move it</button>
+    </div>
+  </div>
+</div>
+
 <div class="scrim" id="scrimScan"></div>
 <div class="sheet" id="sheetScan">
   <button class="sheet-close" data-close="Scan" aria-label="Close">×</button>
@@ -1704,7 +1789,20 @@ let rewindFreq='month';        // 'month' | 'year'
 let lastRewindPeriod=null;     // e.g. '2026-06' or '2025' — the period already shown
 let privacyHidden=false, pinCode=null, pinOK=false;
 let recurrings=[];   // {id,name,amount,freq:'month'|'week'|'day',day,wallet,from,cat,acct,startTs,lastPaidTs}
-let safeReserve=0;   // buffer held back from "safe to spend", in base currency
+/* buffer held back from "safe to spend" — kept per pocket, because holding
+   back cash you carry is a different decision from holding back bank money */
+let safeReserve={cash:0,bank:0};
+/* The app used to reset to Cash + Pocket money on every new entry, so a person
+   who mostly pays by UPI re-picked the same chips several times a day. These
+   remember the last combination used per entry type. */
+let addDefaults={out:null,in:null,other:null};
+function rememberAddDefaults(rec){
+  if(!rec||rec.type==='transfer')return;
+  addDefaults[rec.type]={wallet:rec.wallet||'cash',source:rec.source||'pocket',
+    from:rec.from||'',acct:rec.acct||'',cur:rec.cur||baseCur};
+  dbMetaPut('addDefaults',addDefaults);
+}
+function reserveTotal(){return (safeReserve.cash||0)+(safeReserve.bank||0);}
 let rfEditingId=null, rfFreq='month', rfWallet='cash', rfFrom='', rfCat='', rfAcct='';
 let dueQueue=[], dueIdx=0;
 let fWallet='cash', fSource='pocket', fCat='', fFrom='', fAcct='', fNoDeduct=false, fCur='INR';
@@ -1902,10 +2000,67 @@ $('#btnTheme').addEventListener('click',()=>{
 
 /* ================= math ================= */
 function visible(){return entries.filter(e=>!e.hidden);}
+/* ---- money that was never mine ------------------------------------
+   "Not from my balance" (noDeduct) marks money that moved THROUGH me —
+   paying with dad's credit card. It is logged so the spend is visible and
+   attributable, but it never touches my Cash/Bank balance because it was
+   never my money. The Pass-through account is simply every one of those
+   entries, grouped by whose money it was.
+------------------------------------------------------------------- */
+/* who the money belongs to — the whose-money source, or the named person */
+function ownerOf(e){
+  if(!e)return '';
+  if(e.type==='other')return (e.who||'').trim();
+  return e.from?sourceLabel(e.from):'';
+}
+/* everything that passed through me without touching my balance */
+function passFigures(){
+  const byWho={},byCat={};let total=0,cnt=0;
+  for(const e of visible()){
+    if(!e.noDeduct||isTransfer(e))continue;
+    const v=baseOf(e);total+=v;cnt++;
+    const w=ownerOf(e)||'Unattributed';
+    byWho[w]=(byWho[w]||0)+v;
+    const c=e.cat||(e.type==='other'?'For someone':'Uncategorised');
+    byCat[c]=(byCat[c]||0)+v;
+  }
+  const toList=o=>Object.entries(o).map(([label,amt])=>({label,amt})).sort((a,b)=>b.amt-a.amt);
+  return {total,cnt,byWho:toList(byWho),byCat:toList(byCat)};
+}
+/* whose money: what each person gave me, and how much of it has gone */
+function whoseFigures(){
+  const by={};
+  const touch=k=>by[k]||(by[k]={name:k,given:0,spent:0,passed:0,cnt:0,last:0});
+  for(const e of visible()){
+    if(isTransfer(e))continue;                     // not money given or spent
+    const v=baseOf(e);
+    if(e.type==='in'&&e.source){
+      const b=touch(sourceLabel(e.source));b.given+=v;b.cnt++;if(e.ts>b.last)b.last=e.ts;
+    } else if((e.type==='out'||e.type==='other')&&e.from){
+      const b=touch(sourceLabel(e.from));
+      if(e.noDeduct)b.passed+=v; else b.spent+=v;
+      b.cnt++;if(e.ts>b.last)b.last=e.ts;
+    }
+  }
+  return Object.values(by)
+    .map(b=>({...b,left:b.given-b.spent}))
+    .sort((a,b)=>(b.given+b.spent)-(a.given+a.spent));
+}
+
 function sums(){
   let cash=0,digital=0;
   for(const e of visible()){
     if(e.noDeduct)continue;                 /* not your money — never touched your balance */
+    if(e.type==='transfer'){
+      /* your own money moving: the total is untouched, but a cash withdrawal
+         does shift it from one pocket to the other */
+      if(e.fromWallet&&e.wallet&&e.fromWallet!==e.wallet){
+        const v=baseOf(e);
+        if(e.fromWallet==='cash')cash-=v;else digital-=v;
+        if(e.wallet==='cash')cash+=v;else digital+=v;
+      }
+      continue;
+    }
     const sign=e.type==='in'?1:-1;
     if(e.wallet==='cash')cash+=sign*baseOf(e);else digital+=sign*baseOf(e);
   }
@@ -1927,6 +2082,7 @@ function monthStats(){
   for(const e of visible()){
     const d=new Date(e.ts);
     if(d.getMonth()!==m||d.getFullYear()!==y)continue;
+    if(e.type==='transfer')continue;                  /* moving your own money is not spending */
     if(e.noDeduct){ tracked+=baseOf(e); continue; }   /* logged, but never your money */
     if(e.type==='out')spent+=baseOf(e);
     else if(e.type==='other')others+=baseOf(e);
@@ -1953,6 +2109,11 @@ function countTo(el,value,prefixNeg){
 
 /* ================= rendering ================= */
 function entryTitle(e){
+  if(e.type==='transfer'){
+    const from=e.fromAcct?accountLabel(e.fromAcct):'Others';
+    const to=e.acct?accountLabel(e.acct):'Others';
+    return e.note||(from+' \u2192 '+to);
+  }
   if(e.type==='other')return (e.who||'Someone')+(e.note?' \u2014 '+e.note:'');
   if(e.type==='in'){return e.note||sourceLabel(e.source)||'Received';}
   if(e.personId&&!e.note){const n=personName(e.personId);if(n)return 'Paid '+n;}
@@ -1960,6 +2121,16 @@ function entryTitle(e){
   return e.note||'Spent';
 }
 function entryMeta(e){
+  if(e.type==='transfer'){
+    const from=e.fromAcct?accountLabel(e.fromAcct):'Others';
+    const to=e.acct?accountLabel(e.acct):'Others';
+    const bits=['Transfer'];
+    if(e.note&&from!==to)bits.push(from+' \u2192 '+to);
+    if(e.fromWallet&&e.wallet&&e.fromWallet!==e.wallet)
+      bits.push(walletLabel(e.fromWallet)+' \u2192 '+walletLabel(e.wallet));
+    bits.push(new Date(e.ts).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'}));
+    return bits.join(' \u00B7 ');
+  }
   const w=walletLabel(e.wallet);
   const bits=[];
   /* a foreign entry leads with what was actually on the bill, so the converted
@@ -1994,12 +2165,13 @@ function entryRow(e,ix){
   wrap.className='entry-wrap';
   const d=document.createElement('div');
   d.className='entry';d.style.animationDelay=(Math.min(ix,8)*0.04)+'s';
-  const cls=e.type==='in'?'in':(e.type==='other'?'other':'out');
-  const sym=e.type==='in'?'\u2193':(e.type==='other'?'\u21C4':'\u2191');
-  const sign=e.type==='in'?'+':'\u2212';
+  const cls=e.type==='transfer'?'xfer':(e.type==='in'?'in':(e.type==='other'?'other':'out'));
+  const sym=e.type==='transfer'?'\u2194':(e.type==='in'?'\u2193':(e.type==='other'?'\u21C4':'\u2191'));
+  /* a transfer is neither a plus nor a minus overall */
+  const sign=e.type==='transfer'?'':(e.type==='in'?'+':'\u2212');
   const ndTag=e.noDeduct?'<span class="nd-tag" title="Logged, but not deducted from Cash/UPI">not deducted</span>':'';
   d.innerHTML='<div class="e-badge '+cls+'">'+sym+'</div>'+
-    '<div class="e-main"><div class="e-title">'+esc(entryTitle(e))+ndTag+'</div>'+
+    '<div class="e-main"><div class="e-title"><span class="t-txt">'+esc(entryTitle(e))+'</span>'+ndTag+'</div>'+
     '<div class="e-meta">'+esc(entryMeta(e))+'</div></div>'+
     '<div class="e-amt mono '+cls+(isForeign(e)?' flip':'')+'">'+sign+fmtCur(baseOf(e),baseCur).replace(/^\u2212/,'')+'</div>';
 
@@ -2067,7 +2239,7 @@ function entryRow(e,ix){
   d.addEventListener('click',()=>{
     if(swipeJustDragged())return;                            // that click was the drag release, not a tap
     if(wrap.classList.contains('open')){closeOpenSwipe();return;}
-    openAdd(e.id);
+    if(e.type==='transfer')openXfer(e.id);else openAdd(e.id);
   });
 
   actions.querySelector('.ea-hide').addEventListener('click',async ev=>{
@@ -2174,7 +2346,7 @@ function accountCardHTML(scoped){
 }
 function renderPeriodSummary(b){
   const scoped0=visible().filter(e=>inRange(e,b));
-  const scoped=(ledgerFilter==='cash'||ledgerFilter==='upi')?scoped0.filter(e=>walletMatches(ledgerFilter,e.wallet)):scoped0;
+  const scoped=applyLedgerFilter(scoped0);
   const card=document.createElement('div');card.className='period-card';
   const head=cnt=>'<div class="pc-range"><span>'+esc(b.label)+'</span><span class="pc-count">'+cnt+(cnt===1?' entry':' entries')+'</span></div>';
   const agg=(list,keyFn,labelFn)=>{
@@ -2229,8 +2401,19 @@ function renderPeriodSummary(b){
   const host=$('#periodSummary');host.innerHTML='';host.appendChild(card);
   requestAnimationFrame(()=>card.querySelectorAll('.src-bar > i').forEach(bar=>{bar.style.width=bar.dataset.w+'%';}));
 }
+/* one place decides what a chip means, so the period summary above the list and
+   the list itself always agree */
+function applyLedgerFilter(list){
+  const f=ledgerFilter;
+  if(f==='all')return list;
+  if(f==='cash'||f==='upi')return list.filter(e=>walletMatches(f,e.wallet));
+  if(f==='nodeduct')return list.filter(e=>!!e.noDeduct);
+  return list.filter(e=>e.type===f);
+}
 function renderChips(){
-  const defs=[{id:'all',label:'All'},{id:'cash',label:'Cash'},{id:'upi',label:'Bank · Card'},{id:'out',label:'Spent'},{id:'in',label:'Received'},{id:'other',label:'For others'}];
+  const defs=[{id:'all',label:'All'},{id:'cash',label:'Cash'},{id:'upi',label:'Bank · Card'},
+              {id:'out',label:'Spent'},{id:'in',label:'Received'},{id:'other',label:'For others'},
+              {id:'nodeduct',label:'Not deducted'},{id:'transfer',label:'Transfers'}];
   const wrap=$('#filterChips');wrap.innerHTML='';
   defs.forEach(c=>{
     const b=document.createElement('button');
@@ -2247,8 +2430,7 @@ function renderLedger(){
   renderChips();
   const body=$('#ledgerBody');body.innerHTML='';
   let list=visible().slice().filter(e=>inRange(e,bounds)).sort((a,b)=>b.ts-a.ts);
-  if(ledgerFilter==='cash'||ledgerFilter==='upi')list=list.filter(e=>walletMatches(ledgerFilter,e.wallet));
-  else if(ledgerFilter!=='all')list=list.filter(e=>e.type===ledgerFilter);
+  list=applyLedgerFilter(list);
   if(!list.length){
     body.innerHTML='<div class="empty"><div class="e-mark">\u2261</div><p>'+(visible().length?'Nothing in this range or filter.':'The ledger is blank. Record your first entry with the + button.')+'</p></div>';
     return;
@@ -2265,7 +2447,7 @@ function renderLedger(){
   list.forEach((e,ix)=>{
     const dl=dayLabel(e.ts);
     if(dl!==curDay){flush();curDay=dl;}
-    if(!e.noDeduct) dayTotal+=(e.type==='in'?1:-1)*baseOf(e);
+    if(!e.noDeduct&&e.type!=='transfer') dayTotal+=(e.type==='in'?1:-1)*baseOf(e);
     pending.push(entryRow(e,ix));
   });
   flush();
@@ -2333,7 +2515,7 @@ function safeToSpend(){
 
   const balance=sums().total;   // sums() exposes {cash, upi, total}
   const dues=duesAhead(today+86400000,endTs);                        // tomorrow → month end
-  const reserve=safeReserve;
+  const reserve=reserveTotal();
   const spentToday=entries.filter(e=>!e.hidden&&!e.noDeduct&&e.type==='out'&&startOfDay(e.ts)===today)
                           .reduce((n,e)=>n+baseOf(e),0);
   /* Pace off the balance as it stood at the START of today. `balance` is live
@@ -2491,21 +2673,57 @@ function renderAccounts(){
   if(acctView==='detail'&&acctSel){
     $('#acctListView').style.display='none';
     $('#acctDetailView').style.display='';
-    renderAcctDetail(acctSel);
+    /* the automatic ones are built from entries, not from an accounts row */
+    if(acctSel==='__whose')      renderWhoseDetail();
+    else if(acctSel==='__pass')  renderPassDetail();
+    else                         renderAcctDetail(acctSel);
   } else {
     $('#acctListView').style.display='';
     $('#acctDetailView').style.display='none';
     renderAcctList();
   }
 }
+/* ---- Others ----------------------------------------------------------
+   Anything you never tagged still belongs somewhere, so it falls into
+   "Others". If you have already made an account called Others yourself, it
+   folds into that one instead of a second card appearing next to it.
+   Nothing is rewritten on disk — the entry keeps an empty acct and this is
+   worked out when reading, so untagging later still behaves. */
+const OTHERS_ID='__others';
+function othersAcctId(){
+  const a=accounts.find(x=>String(x.label||'').trim().toLowerCase()==='others');
+  return a?a.id:null;
+}
+function effectiveAcct(e){
+  if(e&&e.acct)return e.acct;
+  return othersAcctId()||OTHERS_ID;
+}
+function othersLabel(){
+  const id=othersAcctId();
+  return id?accountLabel(id):'Others';
+}
 function acctFigures(id){
-  let inAmt=0,outAmt=0,cnt=0;
+  let inAmt=0,outAmt=0,cnt=0,passed=0;
   for(const e of visible()){
-    if(id==='__all'){ if(!e.acct)continue; } else if(e.acct!==id) continue;
+    if(e.type==='transfer'){
+      /* a transfer touches two accounts: out of one, into the other. Across
+         "All accounts" the two cancel, which is why it is skipped there. */
+      if(id==='__all')continue;
+      const to=effectiveAcct(e);
+      const from=e.fromAcct||(othersAcctId()||OTHERS_ID);
+      if(to===id){inAmt+=baseOf(e);cnt++;}
+      else if(from===id){outAmt+=baseOf(e);cnt++;}
+      continue;
+    }
+    /* __all now covers every entry, so this total can match the Home balance */
+    if(id!=='__all'&&effectiveAcct(e)!==id) continue;
+    /* "Not from my balance" money never left this wallet, so it must not be
+       subtracted here either — otherwise the account net disagrees with Home. */
+    if(e.noDeduct){ passed+=baseOf(e); cnt++; continue; }
     if(e.type==='in')inAmt+=baseOf(e); else if(e.type==='out')outAmt+=baseOf(e);
     cnt++;
   }
-  return {inAmt,outAmt,net:inAmt-outAmt,cnt};
+  return {inAmt,outAmt,net:inAmt-outAmt,cnt,passed};
 }
 function renderAcctList(){
   const host=$('#acctCards');host.innerHTML='';
@@ -2516,7 +2734,13 @@ function renderAcctList(){
   all.innerHTML='<div class="ac-top"><span class="ac-name">All accounts</span><span class="ac-net mono cv-tap" data-amt="'+allF.net+'">'+fmtSigned(allF.net)+'</span></div>'+
     '<div class="ac-sub"><span class="ac-stat">Received<b class="mono cv-tap" data-amt="'+allF.inAmt+'">'+fmtSigned(allF.inAmt)+'</b></span>'+
     '<span class="ac-stat">Spent<b class="mono cv-tap" data-amt="'+allF.outAmt+'">'+fmtSigned(allF.outAmt)+'</b></span>'+
-    '<span class="ac-stat">Accounts<b>'+accounts.length+'</b></span></div><span class="ac-arrow">→</span>';
+    '<span class="ac-stat">Accounts<b>'+accounts.length+'</b></span></div>'+
+    /* everything lands in an account now — untagged included, via Others */
+    (untagged?'<div class="ac-blurb">Matches your Home balance. '+untagged+
+      (untagged===1?' entry has':' entries have')+' no account of their own, so '+
+      (untagged===1?'it sits':'they sit')+' under '+esc(othersLabel())+'.</div>'
+             :'<div class="ac-blurb">Matches your Home balance.</div>')+
+    '<span class="ac-arrow">→</span>';
   all.addEventListener('click',()=>{scrollTop0();acctSel='__all';acctView='detail';renderAccounts();});
   host.appendChild(all);
   if(!accounts.length){
@@ -2533,12 +2757,137 @@ function renderAcctList(){
     c.addEventListener('click',()=>{scrollTop0();acctSel=a.id;acctView='detail';renderAccounts();});
     host.appendChild(c);
   });
+  /* Untagged money needs somewhere to live. If you already have an account
+     called Others it is in the loop above and has absorbed them, so only add
+     a card here when there isn't one. */
+  if(!othersAcctId()&&untagged){
+    const f=acctFigures(OTHERS_ID);
+    const c=document.createElement('div');c.className='acct-card';
+    c.innerHTML='<div class="ac-top"><span class="ac-name">Others</span><span class="ac-net mono cv-tap" data-amt="'+f.net+'">'+fmtSigned(f.net)+'</span></div>'+
+      '<div class="ac-sub"><span class="ac-stat">Received<b class="mono cv-tap" data-amt="'+f.inAmt+'">'+fmtSigned(f.inAmt)+'</b></span>'+
+      '<span class="ac-stat">Spent<b class="mono cv-tap" data-amt="'+f.outAmt+'">'+fmtSigned(f.outAmt)+'</b></span>'+
+      '<span class="ac-stat">Entries<b>'+f.cnt+'</b></span></div>'+
+      '<div class="ac-blurb">Everything you didn’t put in an account. Make an account called “Others” and these move into it.</div>'+
+      '<span class="ac-arrow">→</span>';
+    c.addEventListener('click',()=>{scrollTop0();acctSel=OTHERS_ID;acctView='detail';renderAccounts();});
+    host.appendChild(c);
+  }
+  renderSystemAccounts(host);
+}
+/* Built from your entries, not created by you. Kept visually distinct from the
+   accounts you name yourself, and always present so they can actually be found. */
+function renderSystemAccounts(host){
+  const whose=whoseFigures(), pass=passFigures();
+  host.insertAdjacentHTML('beforeend',
+    '<div class="sys-head">Worked out for you</div>');
+  const card=(id,name,net,netCls,stats,blurb)=>{
+    const c=document.createElement('div');
+    c.className='acct-card sys';
+    c.innerHTML='<div class="ac-top"><span class="ac-name">'+esc(name)+
+        '</span><span class="ac-net mono '+netCls+' cv-tap" data-amt="'+net+'">'+fmtSigned(net)+'</span></div>'+
+      '<div class="ac-sub">'+stats+'</div>'+
+      '<div class="ac-blurb">'+esc(blurb)+'</div><span class="ac-arrow">→</span>';
+    c.addEventListener('click',()=>{scrollTop0();acctSel=id;acctView='detail';renderAccounts();});
+    host.appendChild(c);
+  };
+  const stat=(k,v,amt)=>'<span class="ac-stat">'+k+'<b class="mono'+(amt!=null?' cv-tap':'')+'"'+
+    (amt!=null?' data-amt="'+amt+'"':'')+'>'+v+'</b></span>';
+
+  const givenTot=whose.reduce((n,w)=>n+w.given,0);
+  const spentTot=whose.reduce((n,w)=>n+w.spent,0);
+  card('__whose','Whose money',givenTot-spentTot,'',
+    stat('People',whose.length)+stat('Given',fmtSigned(givenTot),givenTot)+stat('Spent',fmtSigned(spentTot),spentTot),
+    'What each person gave you and how much of it is left.');
+
+  card('__pass','Pass-through',pass.total,'vio',
+    stat('Entries',pass.cnt)+stat('People',pass.byWho.length)+stat('Total',fmtSigned(pass.total),pass.total),
+    'Spent with someone else\u2019s money — logged, never taken off your balance.');
+}
+/* ---- Pass-through: everything marked "Not from my balance" ----
+   The question this answers is "how much of dad's card have I used?", so it
+   leads with the breakdown by whose money. */
+function renderPassDetail(){
+  const p=passFigures();
+  const list=visible().filter(e=>e.noDeduct).sort((a,b)=>b.ts-a.ts);
+  const body=$('#acctDetailBody');
+  let html='<div class="acct-hero"><div class="ah-label">Pass-through · never left your balance</div>'+
+    '<div class="ah-net cv-tap" data-amt="'+p.total+'">'+fmtSigned(p.total)+'</div>'+
+    '<div class="ah-figs">'+
+      '<div class="ah-fig"><div class="ahf-k">Entries</div><div class="ahf-v">'+p.cnt+'</div></div>'+
+      '<div class="ah-fig"><div class="ahf-k">People</div><div class="ahf-v">'+p.byWho.length+'</div></div>'+
+      '<div class="ah-fig"><div class="ahf-k">Categories</div><div class="ahf-v">'+p.byCat.length+'</div></div>'+
+    '</div></div>';
+  if(!p.cnt){
+    html+='<div class="empty"><div class="e-mark">⊘</div><p>Nothing here yet. When you record a spend, turn on <b>Not from my balance</b> — for example paying with your father’s card — and it collects here instead of coming off your money.</p></div>';
+    body.innerHTML=html;return;
+  }
+  html+=breakdownBlock('Whose money',p.byWho,p.total);
+  html+=breakdownBlock('On what',p.byCat,p.total);
+  html+='<div class="section-head"><div class="section-title">Entries</div>'+
+        '<div class="section-sub">'+p.cnt+'</div></div><div id="passRows"></div>';
+  body.innerHTML=html;
+  const rows=$('#passRows');
+  list.forEach((e,ix)=>rows.appendChild(entryRow(e,ix)));
+  applyPrivacy();
+}
+/* ---- Whose money: per person, what they gave and what has gone ---- */
+function renderWhoseDetail(){
+  const who=whoseFigures();
+  const body=$('#acctDetailBody');
+  const givenTot=who.reduce((n,w)=>n+w.given,0);
+  const spentTot=who.reduce((n,w)=>n+w.spent,0);
+  let html='<div class="acct-hero"><div class="ah-label">Whose money · given vs spent</div>'+
+    '<div class="ah-net cv-tap" data-amt="'+(givenTot-spentTot)+'">'+fmtSigned(givenTot-spentTot)+'</div>'+
+    '<div class="ah-figs">'+
+      '<div class="ah-fig"><div class="ahf-k">Given to you</div><div class="ahf-v cv-tap" data-amt="'+givenTot+'">'+fmtSigned(givenTot)+'</div></div>'+
+      '<div class="ah-fig"><div class="ahf-k">Spent of it</div><div class="ahf-v cv-tap" data-amt="'+spentTot+'">'+fmtSigned(spentTot)+'</div></div>'+
+      '<div class="ah-fig"><div class="ahf-k">People</div><div class="ahf-v">'+who.length+'</div></div>'+
+    '</div></div>';
+  if(!who.length){
+    html+='<div class="empty"><div class="e-mark">◱</div><p>Nothing to show yet. Tag <b>whose money</b> when you record — pocket money from your father, say — and each person gets their own line here.</p></div>';
+    body.innerHTML=html;return;
+  }
+  html+='<div class="section-head"><div class="section-title">Person by person</div></div>';
+  who.forEach(w=>{
+    const pct=w.given>0?Math.max(0,Math.min(100,(w.spent/w.given)*100)):(w.spent>0?100:0);
+    html+='<div class="who-card">'+
+      '<div class="who-top"><span class="who-name">'+esc(w.name)+'</span>'+
+        '<span class="who-left mono '+(w.left<0?'neg':'')+' cv-tap" data-amt="'+w.left+'">'+fmtSigned(w.left)+'</span></div>'+
+      '<div class="who-bar"><i style="width:'+pct.toFixed(1)+'%"></i></div>'+
+      '<div class="who-sub">'+
+        '<span>Gave you <b class="mono cv-tap" data-amt="'+w.given+'">'+fmtSigned(w.given)+'</b></span>'+
+        '<span>Spent <b class="mono cv-tap" data-amt="'+w.spent+'">'+fmtSigned(w.spent)+'</b></span>'+
+        (w.passed>0?'<span>Their card <b class="mono cv-tap" data-amt="'+w.passed+'">'+fmtSigned(w.passed)+'</b></span>':'')+
+      '</div></div>';
+  });
+  body.innerHTML=html;
+  applyPrivacy();
+}
+/* shared bar-chart breakdown used by the automatic views */
+function breakdownBlock(title,rows,total){
+  if(!rows.length)return '';
+  let h='<div class="section-head"><div class="section-title">'+esc(title)+'</div></div>';
+  rows.forEach(r=>{
+    const pct=total>0?(r.amt/total)*100:0;
+    h+='<div class="bd-row"><div class="bd-top"><span class="bd-k">'+esc(r.label)+'</span>'+
+       '<span class="bd-v mono cv-tap" data-amt="'+r.amt+'">'+fmtSigned(r.amt)+'</span></div>'+
+       '<div class="bd-bar"><i style="width:'+pct.toFixed(1)+'%"></i></div>'+
+       '<div class="bd-pct">'+pct.toFixed(0)+'%</div></div>';
+  });
+  return h;
 }
 function renderAcctDetail(id){
   const isAll=id==='__all';
-  const label=isAll?'All accounts':accountLabel(id);
+  const label=isAll?'All accounts':(id===OTHERS_ID?'Others':accountLabel(id));
   const f=acctFigures(id);
-  const list=visible().filter(e=>isAll?e.acct:e.acct===id).sort((a,b)=>b.ts-a.ts);
+  const list=visible().filter(e=>{
+    if(e.type==='transfer'){
+      if(isAll)return false;                       // nets to nothing across all accounts
+      const from=e.fromAcct||(othersAcctId()||OTHERS_ID);
+      return effectiveAcct(e)===id||from===id;
+    }
+    return isAll?true:effectiveAcct(e)===id;
+  }).sort((a,b)=>b.ts-a.ts);
   const body=$('#acctDetailBody');
   let html='<div class="acct-hero"><div class="ah-label">'+esc(label)+' · net left</div>'+
     '<div class="ah-net cv-tap" data-amt="'+f.net+'">'+fmtSigned(f.net)+'</div>'+
@@ -2578,6 +2927,7 @@ function renderAcctDetail(id){
   applyPrivacy();
 }
 $('#btnAcctBack').addEventListener('click',()=>{scrollTop0();acctView='list';acctSel=null;renderAccounts();});
+$('#btnXfer').addEventListener('click',openXfer);
 $('#btnAddAcct').addEventListener('click',()=>addAccountPrompt(id=>{acctSel=id;acctView='detail';renderAccounts();}));
 /* ================= layered settings =================
    Thirteen rows in one list meant a long scroll; they're grouped into six
@@ -2951,6 +3301,128 @@ $('#fileQR').addEventListener('change',async ev=>{
   }
 });
 
+/* ================= transfers =================
+   Your own money moving between your own accounts (or out of the bank into
+   your pocket). It is NOT income and NOT spending, so it never moves your
+   total — only where the money sits. One entry records both sides:
+     fromAcct  -> acct       which account it left / landed in
+     fromWallet-> wallet     which pocket, when that changes too (ATM) */
+let xfFrom='',xfTo='',xfFromWallet='',xfToWallet='';
+function isTransfer(e){return e&&e.type==='transfer';}
+function xfAccountOptions(){
+  const list=accounts.slice();
+  if(!othersAcctId())list.push({id:OTHERS_ID,label:'Others'});
+  return list;
+}
+function renderXferGrids(){
+  const opts=xfAccountOptions();
+  const fill=(host,sel,set)=>{
+    host.innerHTML='';
+    if(!opts.length){host.innerHTML='<div class="hint" style="margin:0">Make an account first.</div>';return;}
+    opts.forEach(a=>{
+      const b=document.createElement('button');
+      b.type='button';b.className='opt'+(sel===a.id?' on':'');
+      b.textContent=a.label;
+      b.addEventListener('click',()=>{set(a.id);renderXferGrids();xferPreview();});
+      host.appendChild(b);
+    });
+  };
+  fill($('#xfFromGrid'),xfFrom,v=>{xfFrom=v;if(xfTo===v)xfTo='';});
+  fill($('#xfToGrid'),  xfTo,  v=>{xfTo=v;  if(xfFrom===v)xfFrom='';});
+  const wfill=(host,sel,set)=>{
+    host.innerHTML='';
+    WALLETS.forEach(w=>{
+      const b=document.createElement('button');
+      b.type='button';b.className='opt'+(sel===w.id?' on':'');
+      b.textContent=w.label;
+      b.addEventListener('click',()=>{set(sel===w.id?'':w.id);renderXferGrids();xferPreview();});
+      host.appendChild(b);
+    });
+  };
+  wfill($('#xfFromWallet'),xfFromWallet,v=>xfFromWallet=v);
+  wfill($('#xfToWallet'),  xfToWallet,  v=>xfToWallet=v);
+}
+function xferAmount(){
+  const n=parseFloat(String($('#xfAmt').value).replace(/[^\d.]/g,''));
+  return (!n||n<=0||!isFinite(n))?0:Math.round(n*100)/100;
+}
+function xfLabel(id){return id===OTHERS_ID?'Others':accountLabel(id);}
+function xferPreview(){
+  const el=$('#xfPreview');if(!el)return;
+  const amt=xferAmount();
+  el.classList.remove('bad');
+  if(!amt){el.textContent='Enter an amount, then pick where it moves from and to.';return;}
+  if(!xfFrom||!xfTo){el.textContent='Pick both accounts.';return;}
+  if(xfFrom===xfTo){el.classList.add('bad');el.textContent='Those are the same account.';return;}
+  const pocket=(xfFromWallet&&xfToWallet&&xfFromWallet!==xfToWallet)
+    ? ' · '+walletLabel(xfFromWallet)+' → '+walletLabel(xfToWallet) : '';
+  el.innerHTML=fmtCur(amt,baseCur)+' leaves <b>'+esc(xfLabel(xfFrom))+'</b> and lands in <b>'+
+    esc(xfLabel(xfTo))+'</b>'+esc(pocket)+'.<br>Your total stays the same.';
+}
+let xfEditingId=null;
+function openXfer(id){
+  const opts=xfAccountOptions();
+  const en=id?entries.find(x=>x.id===id):null;
+  xfEditingId=en?en.id:null;
+  if(en){
+    xfFrom=en.fromAcct||(othersAcctId()||OTHERS_ID);
+    xfTo=en.acct||(othersAcctId()||OTHERS_ID);
+    xfFromWallet=en.fromWallet||'';
+    xfToWallet=en.fromWallet?(en.wallet||''):'';
+    $('#xfAmt').value=String(en.amount);
+    $('#xfNote').value=en.note||'';
+  } else {
+    xfFrom=opts[0]?opts[0].id:'';
+    xfTo=opts.find(a=>a.id!==xfFrom)?opts.find(a=>a.id!==xfFrom).id:'';
+    xfFromWallet='';xfToWallet='';
+    $('#xfAmt').value='';$('#xfNote').value='';
+  }
+  $('#xfSheetTitle').textContent=en?'Edit transfer':'Transfer';
+  $('#btnDoXfer').textContent=en?'Save':'Move it';
+  $('#btnDelXfer').style.display=en?'':'none';
+  $('#xfCur').textContent=curMeta(baseCur).sym;
+  renderXferGrids();xferPreview();
+  openSheet('Xfer');
+  setTimeout(()=>{try{$('#xfAmt').focus();}catch(e){}},350);
+}
+$('#btnDelXfer').addEventListener('click',async ()=>{
+  if(!xfEditingId)return;
+  if(!armConfirm('delXfer','Tap Delete again to confirm'))return;
+  await dbDel(xfEditingId);
+  entries=entries.filter(x=>x.id!==xfEditingId);
+  xfEditingId=null;
+  closeSheet('Xfer');renderAll();snapshotSoon();
+  toast('Transfer deleted');
+});
+$('#xfAmt').addEventListener('input',xferPreview);
+$('#scrimXfer').addEventListener('click',()=>closeSheet('Xfer'));
+$('#btnDoXfer').addEventListener('click',async ()=>{
+  const amt=xferAmount();
+  if(!amt)return toast('Enter the amount first');
+  if(!xfFrom||!xfTo)return toast('Pick both accounts');
+  if(xfFrom===xfTo)return toast('Pick two different accounts');
+  const movesPocket=xfFromWallet&&xfToWallet&&xfFromWallet!==xfToWallet;
+  const prev=xfEditingId?entries.find(x=>x.id===xfEditingId):null;
+  const rec={
+    id:xfEditingId||uid(),ts:prev?prev.ts:Date.now(),type:'transfer',
+    amount:amt,cur:baseCur,fxRate:1,baseAmount:amt,
+    /* the virtual Others id is never stored — an empty acct IS Others */
+    fromAcct:xfFrom===OTHERS_ID?'':xfFrom,
+    acct:xfTo===OTHERS_ID?'':xfTo,
+    wallet:movesPocket?xfToWallet:(xfToWallet||xfFromWallet||'cash'),
+    note:$('#xfNote').value.trim()
+  };
+  if(movesPocket)rec.fromWallet=xfFromWallet;
+  if(prev&&prev.hidden)rec.hidden=true;
+  await dbPut(rec);
+  const ix=entries.findIndex(x=>x.id===rec.id);
+  if(ix>-1)entries[ix]=rec;else entries.push(rec);
+  const wasEdit=!!xfEditingId;
+  xfEditingId=null;
+  closeSheet('Xfer');renderAll();snapshotSoon();
+  toast(wasEdit?'Transfer updated':('Moved '+fmtCur(amt,baseCur)+' to '+xfLabel(xfTo)));
+});
+
 /* ================= converter =================
    Same live table the rest of the app uses, so a conversion here and a
    conversion on an entry can never disagree. */
@@ -3074,7 +3546,7 @@ function searchFields(e){
     e.cat||'',                                     // 3 — category
     e.type==='in'?sourceLabel(e.source):'',        // 4 — where it came from
     e.from?sourceLabel(e.from):'',                 // 5 — whose money
-    e.acct?accountLabel(e.acct):'',                // 6 — account
+    (e.acct?accountLabel(e.acct):'')+(e.fromAcct?' '+accountLabel(e.fromAcct):''), // 6 — account(s)
     walletLabel(e.wallet),                         // 7 — cash / upi / card
     String(Math.round(e.amount))+' '+String(Math.round(baseOf(e)))+' '+
       (isForeign(e)?curOf(e)+' '+curMeta(curOf(e)).name:''),   // 8 — amount + currency
@@ -3525,7 +3997,10 @@ function openAdd(id){
     $('#btnHideEntry').textContent=en.hidden?'Unhide':'Hide';
     $('#fDate').value=toDateInput(en.ts);
   } else {
-    editingId=null;addType='out';fWallet='cash';fSource='pocket';fCat='';fFrom='';fAcct='';fNoDeduct=false;fCur=baseCur;
+    editingId=null;addType='out';
+    const d=addDefaults[addType]||{};
+    fWallet=d.wallet||'cash';fSource=d.source||'pocket';fFrom=d.from||'';fAcct=d.acct||'';
+    fCat='';fNoDeduct=false;fCur=d.cur||baseCur;
     $('#addTitle').textContent='New entry';
     $('#fAmt').value='';$('#fNote').value='';$('#fWho').value='';
     $('#btnDelEntry').style.display='none';
@@ -3585,6 +4060,7 @@ $('#btnSaveEntry').addEventListener('click',async ()=>{
   await dbPut(rec);
   const ix=entries.findIndex(x=>x.id===rec.id);
   if(ix>-1)entries[ix]=rec;else entries.push(rec);
+  rememberAddDefaults(rec);
   const wasNew=!editingId;
   closeSheet('Add');renderAll();snapshotSoon();
   if(wasNew){
@@ -3615,18 +4091,29 @@ $('#btnHideEntry').addEventListener('click',async ()=>{
 
 /* ================= opening cash ================= */
 function reserveLabel(){
-  const el=$('#reserveVal');if(el)el.textContent=fmtCur(safeReserve,baseCur);
+  const el=$('#reserveVal');if(el)el.textContent=fmtCur(reserveTotal(),baseCur);
+  const sub=$('#reserveSub');
+  if(sub)sub.textContent=reserveTotal()
+    ? 'Holding back '+fmtCur(safeReserve.cash,baseCur)+' cash and '+fmtCur(safeReserve.bank,baseCur)+' bank.'
+    : 'A cushion held back from the daily figure on Home, so it never invites you to spend your last rupee.';
 }
 $('#btnReserve').addEventListener('click',()=>{
-  const cur=safeReserve?String(safeReserve):'';
-  const v=prompt('Hold back how much as a cushion?\n\nThis is subtracted before the daily "safe to spend" figure is worked out, so an emergency buffer never shows up as spendable.\n\nAmount in '+baseCur+' (0 for none):',cur);
-  if(v===null)return;
-  const n=parseFloat(String(v).replace(/[^\d.]/g,''));
-  if(isNaN(n)||n<0)return toast('Enter a number, or 0 for none');
-  safeReserve=Math.round(n*100)/100;
+  const ask=(label,cur)=>{
+    const v=prompt('Cushion to hold back from '+label+'.\n\nThis is set aside before the daily "safe to spend" figure is worked out, so an emergency buffer never shows up as spendable.\n\nAmount in '+baseCur+' (0 for none):',cur?String(cur):'');
+    if(v===null)return null;
+    const n=parseFloat(String(v).replace(/[^\d.]/g,''));
+    return (isNaN(n)||n<0)?NaN:Math.round(n*100)/100;
+  };
+  const c=ask('CASH IN HAND',safeReserve.cash);
+  if(c===null)return;
+  if(isNaN(c))return toast('Enter a number, or 0 for none');
+  const b=ask('BANK · UPI',safeReserve.bank);
+  if(b===null)return;
+  if(isNaN(b))return toast('Enter a number, or 0 for none');
+  safeReserve={cash:c,bank:b};
   dbMetaPut('safeReserve',safeReserve);
   reserveLabel();renderHome();
-  toast(safeReserve?('Holding back '+fmtCur(safeReserve,baseCur)):'Reserve cleared');
+  toast(reserveTotal()?('Holding back '+fmtCur(reserveTotal(),baseCur)):'Reserve cleared');
 });
 $('#btnStsInfo').addEventListener('click',()=>{
   const r=safeToSpend();
@@ -3636,7 +4123,8 @@ $('#btnStsInfo').addEventListener('click',()=>{
     'spread evenly over the days left, then minus what today has already taken.\n\n'+
     line('Balance',r.balance)+'\n'+
     line('− Recurring still due',r.dues)+'\n'+
-    line('− Your reserve',r.reserve)+'\n'+
+    line('− Your reserve',r.reserve)+
+      (reserveTotal()?'   ('+fmtCur(safeReserve.cash,baseCur)+' cash + '+fmtCur(safeReserve.bank,baseCur)+' bank)':'')+'\n'+
     '= '+fmtCur(Math.round(r.pool),baseCur)+' over '+r.daysLeft+' day'+(r.daysLeft===1?'':'s')+'\n'+
     line('Daily pace',r.perDay)+'\n'+
     line('− Spent today',r.spentToday)+'\n\n'+
@@ -3886,20 +4374,27 @@ function rowsForExport(b){
     .sort((a,b2)=>a.ts-b2.ts).map(e=>({
     'Date':new Date(e.ts).toLocaleDateString('en-IN'),
     'Time':new Date(e.ts).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'}),
-    'Type':e.type==='in'?'Received':(e.type==='other'?'For someone':'Spent'),
-    'Wallet':walletLabel(e.wallet),
+    /* a transfer is neither income nor spending — it must not land in the In
+       or Out columns, or every total in the spreadsheet is wrong */
+    'Type':e.type==='transfer'?'Transfer':(e.type==='in'?'Received':(e.type==='other'?'For someone':'Spent')),
+    'Wallet':e.type==='transfer'&&e.fromWallet?(walletLabel(e.fromWallet)+' → '+walletLabel(e.wallet)):walletLabel(e.wallet),
     'Source':e.type==='in'?sourceLabel(e.source):'',
     'For whom':e.who||'',
     'Paid to':e.personId?personName(e.personId):'',
     'Note':e.note||'',
     'Category':e.cat||'',
+    'Account':e.type==='transfer'
+      ? ((e.fromAcct?accountLabel(e.fromAcct):'Others')+' → '+(e.acct?accountLabel(e.acct):'Others'))
+      : (e.acct?accountLabel(e.acct):''),
     'Currency':curOf(e),
     'In':e.type==='in'?e.amount:'',
-    'Out':e.type!=='in'?e.amount:'',
+    'Out':(e.type!=='in'&&e.type!=='transfer')?e.amount:'',
+    'Moved':e.type==='transfer'?e.amount:'',
     ['Rate to '+baseCur]:e.amount?+(baseOf(e)/e.amount).toFixed(4):1,
     ['In ('+baseCur+')']:e.type==='in'?baseOf(e):'',
-    ['Out ('+baseCur+')']:e.type!=='in'?baseOf(e):'',
-    'Deducted from balance?':e.type==='in'?'':(e.noDeduct?'No':'Yes')
+    ['Out ('+baseCur+')']:(e.type!=='in'&&e.type!=='transfer')?baseOf(e):'',
+    ['Moved ('+baseCur+')']:e.type==='transfer'?baseOf(e):'',
+    'Deducted from balance?':(e.type==='in'||e.type==='transfer')?'':(e.noDeduct?'No':'Yes')
   }));
 }
 function download(name,blob){
@@ -3995,11 +4490,29 @@ $('#btnDoExport').addEventListener('click',async ()=>{
 });
 
 /* ================= backup / restore / wipe ================= */
+/* A backup used to hold only the entries, so restoring on another phone left
+   every account, category, source, person and recurring bill behind — the
+   entries then pointed at ids that no longer existed. It now carries the
+   whole wallet. v1 files (entries only) still restore fine. */
+function buildBackup(){
+  return {
+    v:2,
+    exportedAt:new Date().toISOString(),
+    appVersion:APP_VERSION,
+    entries,
+    accounts,
+    customSources,
+    customCats,
+    people,
+    recurrings,
+    prefs:{baseCur,safeReserve,rewindFreq,preferredUpiApp,addDefaults}
+  };
+}
 $('#btnExport').addEventListener('click',()=>{
   if(!entries.length)return toast('Nothing to back up yet');
   download('ledger-backup-'+new Date().toISOString().slice(0,10)+'.json',
-    new Blob([JSON.stringify({v:1,exportedAt:new Date().toISOString(),entries})],{type:'application/json'}));
-  toast('Backup downloaded');
+    new Blob([JSON.stringify(buildBackup())],{type:'application/json'}));
+  toast('Backup downloaded — entries, accounts and settings');
 });
 $('#btnImport').addEventListener('click',()=>$('#fileImport').click());
 $('#fileImport').addEventListener('change',e=>{
@@ -4017,8 +4530,40 @@ $('#fileImport').addEventListener('change',e=>{
         for(const en of data.entries)if(en&&en.id)map.set(en.id,en);
         entries=[...map.values()];
       }
+      /* v2 and later carry the rest of the wallet. Merge by id so restoring
+         onto a phone that already has data adds what's missing instead of
+         wiping what's there. */
+      const mergeById=(mine,theirs)=>{
+        if(!Array.isArray(theirs))return mine;
+        const map=new Map(mine.map(x=>[x.id,x]));
+        theirs.forEach(x=>{if(x&&x.id&&!map.has(x.id))map.set(x.id,x);});
+        return [...map.values()];
+      };
+      let restoredExtras=0;
+      if(Array.isArray(data.accounts)){const n=accounts.length;accounts=mergeById(accounts,data.accounts);restoredExtras+=accounts.length-n;await dbMetaPut('accounts',accounts);}
+      if(Array.isArray(data.customSources)){const n=customSources.length;customSources=mergeById(customSources,data.customSources);restoredExtras+=customSources.length-n;await dbMetaPut('customSources',customSources);}
+      if(Array.isArray(data.people)){const n=people.length;people=mergeById(people,data.people);restoredExtras+=people.length-n;await dbMetaPut('people',people);}
+      if(Array.isArray(data.recurrings)){const n=recurrings.length;recurrings=mergeById(recurrings,data.recurrings);restoredExtras+=recurrings.length-n;await dbMetaPut('recurrings',recurrings);}
+      if(Array.isArray(data.customCats)){
+        const before=customCats.length;
+        data.customCats.forEach(c=>{if(typeof c==='string'&&!customCats.includes(c))customCats.push(c);});
+        restoredExtras+=customCats.length-before;
+        await dbMetaPut('customCats',customCats);
+      }
+      if(data.prefs&&typeof data.prefs==='object'){
+        const p=data.prefs;
+        if(p.baseCur&&CURRENCIES[p.baseCur]){baseCur=p.baseCur;await dbMetaPut('baseCur',baseCur);}
+        if(p.safeReserve&&typeof p.safeReserve==='object'){safeReserve={cash:+p.safeReserve.cash||0,bank:+p.safeReserve.bank||0};await dbMetaPut('safeReserve',safeReserve);}
+        else if(typeof p.safeReserve==='number'){safeReserve={cash:p.safeReserve,bank:0};await dbMetaPut('safeReserve',safeReserve);}
+        if(p.rewindFreq==='month'||p.rewindFreq==='year'){rewindFreq=p.rewindFreq;await dbMetaPut('rewindFreq',rewindFreq);}
+        if(p.preferredUpiApp&&UPI_APPS[p.preferredUpiApp]){preferredUpiApp=p.preferredUpiApp;await dbMetaPut('preferredUpiApp',preferredUpiApp);}
+        if(p.addDefaults&&typeof p.addDefaults==='object'){addDefaults=Object.assign(addDefaults,p.addDefaults);await dbMetaPut('addDefaults',addDefaults);}
+        baseCurLabel&&baseCurLabel();reserveLabel&&reserveLabel();rewindFreqLabel&&rewindFreqLabel();
+      }
       renderAll();
-      toast('Ledger restored');
+      toast(restoredExtras
+        ? 'Restored — entries plus '+restoredExtras+' account/category/person'
+        : 'Ledger restored');
     }catch(err){toast('That file is not a ledger backup');}
   };
   rd.readAsText(f);
@@ -4362,7 +4907,11 @@ function showPinGate(){
   const rc=await dbMetaGet('recurrings');if(Array.isArray(rc))recurrings=rc;
   const pp=await dbMetaGet('people');if(Array.isArray(pp))people=pp;
   const ua=await dbMetaGet('preferredUpiApp');if(ua&&UPI_APPS[ua])preferredUpiApp=ua;
-  const sr=await dbMetaGet('safeReserve');if(typeof sr==='number'&&sr>=0)safeReserve=sr;
+  const ad=await dbMetaGet('addDefaults');
+  if(ad&&typeof ad==='object')addDefaults=Object.assign(addDefaults,ad);
+  const sr=await dbMetaGet('safeReserve');
+  if(typeof sr==='number'&&sr>=0)safeReserve={cash:sr,bank:0};        // migrate the old single figure
+  else if(sr&&typeof sr==='object')safeReserve={cash:+sr.cash||0,bank:+sr.bank||0};
   reserveLabel();
   const bc=await dbMetaGet('baseCur');if(bc&&CURRENCIES[bc])baseCur=bc;
   const fx=await dbMetaGet('fx');
