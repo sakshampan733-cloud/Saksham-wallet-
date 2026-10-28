@@ -4947,5 +4947,111 @@ function showPinGate(){
   },1200);
 })();
 </script>
+<!-- jarvis-sync:start (master copy lives in the jarvis repo: jarvis/hub_client.html) -->
+<script>
+/* Jarvis sync: sends a copy of this app's saved data to Jarvis on your Mac, over home
+   Wi-Fi only. Does nothing until you approve the app on your Mac, never blocks the app,
+   and fails silently when the Mac isn't reachable (away from home, Mac asleep). */
+(function () {
+  var APP = "saksham-wallet";
+  var HUB = "https://MacBook-Air-2.local:8766";
+  var KEY = "jarvis-sync";
+  // IndexedDB stores to copy too, for apps that keep their data there: {database: [stores]}
+  var IDB = {"ledger-desk": ["entries", "meta"]};
+  var setItem = Storage.prototype.setItem, removeItem = Storage.prototype.removeItem;
+
+  function cfg() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function save(c) { setItem.call(localStorage, KEY, JSON.stringify(c)); }
+  function call(path, opts) {
+    var ctrl = new AbortController(), t = setTimeout(function () { ctrl.abort(); }, 5000);
+    return fetch(HUB + path, Object.assign({ signal: ctrl.signal }, opts)).finally(function () { clearTimeout(t); });
+  }
+  function snapshot() {
+    var data = {};
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k !== KEY) data[k] = localStorage.getItem(k);
+    }
+    return data;
+  }
+
+  // Read one IndexedDB store without disturbing the app: open at whatever version exists,
+  // read, close at once (and step aside if the app needs to upgrade the database).
+  function readStore(name, store) {
+    return new Promise(function (res) {
+      var rq;
+      try { rq = indexedDB.open(name); } catch (e) { return res(null); }
+      rq.onerror = function () { res(null); };
+      rq.onsuccess = function () {
+        var d = rq.result;
+        d.onversionchange = function () { d.close(); };
+        if (!d.objectStoreNames.contains(store)) { d.close(); return res(null); }
+        var g = d.transaction(store, "readonly").objectStore(store).getAll();
+        g.onsuccess = function () { d.close(); res(g.result); };
+        g.onerror = function () { d.close(); res(null); };
+      };
+    });
+  }
+  async function idbSnapshot() {
+    var out = {};
+    for (var name in IDB) {
+      out[name] = {};
+      for (var i = 0; i < IDB[name].length; i++) out[name][IDB[name][i]] = await readStore(name, IDB[name][i]);
+    }
+    return out;
+  }
+
+  async function push() {
+    var c = cfg();
+    if (!c.token) return pair();
+    try {
+      var r = await call("/sync/" + APP, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Jarvis-Token": c.token },
+        body: JSON.stringify({ app: APP, at: new Date().toISOString(), data: snapshot(), idb: await idbSnapshot() }),
+      });
+      if (r.status === 403) { delete c.token; save(c); }  // un-paired on the Mac: ask again later
+    } catch (e) {}
+  }
+
+  // Ask the Mac for permission; you approve from a notification or the dashboard.
+  var pairing = false;
+  async function pair() {
+    var c = cfg();
+    if (pairing || (c.asked && Date.now() - c.asked < 6 * 3600e3)) return;  // at most every 6 hours
+    pairing = true;
+    try {
+      var r = await call("/pair", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ app: APP }) });
+      if (!r.ok) return;
+      c.asked = Date.now(); save(c);
+      var id = (await r.json()).request;
+      for (var i = 0; i < 60; i++) {  // up to 5 minutes to click Allow
+        await new Promise(function (res) { setTimeout(res, 5000); });
+        var s = await (await call("/pair/" + id)).json();
+        if (s.token) { c.token = s.token; save(c); return push(); }
+        if (!s.waiting) return;
+      }
+    } catch (e) {} finally { pairing = false; }
+  }
+
+  var timer;
+  function soon() { clearTimeout(timer); timer = setTimeout(push, 4000); }
+  Storage.prototype.setItem = function (k, v) { setItem.call(this, k, v); if (this === localStorage && k !== KEY) soon(); };
+  Storage.prototype.removeItem = function (k) { removeItem.call(this, k); if (this === localStorage && k !== KEY) soon(); };
+  if (window.IDBObjectStore && Object.keys(IDB).length) {
+    ["put", "add", "delete", "clear"].forEach(function (method) {
+      var original = IDBObjectStore.prototype[method];
+      IDBObjectStore.prototype[method] = function () {
+        var result = original.apply(this, arguments);
+        try { if (IDB[this.transaction.db.name]) soon(); } catch (e) {}
+        return result;
+      };
+    });
+  }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") soon(); });
+  soon();
+})();
+</script>
+<!-- jarvis-sync:end -->
 </body>
 </html>
