@@ -4966,11 +4966,13 @@ function showPinGate(){
     var ctrl = new AbortController(), t = setTimeout(function () { ctrl.abort(); }, 5000);
     return fetch(HUB + path, Object.assign({ signal: ctrl.signal }, opts)).finally(function () { clearTimeout(t); });
   }
+  // Sign-in tokens and secrets stay on the phone; Jarvis has no use for them.
+  var PRIVATE = /token|secret|password|credential/i;
   function snapshot() {
     var data = {};
     for (var i = 0; i < localStorage.length; i++) {
       var k = localStorage.key(i);
-      if (k !== KEY) data[k] = localStorage.getItem(k);
+      if (k !== KEY && !PRIVATE.test(k)) data[k] = localStorage.getItem(k);
     }
     return data;
   }
@@ -5014,23 +5016,53 @@ function showPinGate(){
     } catch (e) {}
   }
 
+  // A small status pill, shown only while connecting, so setup isn't a silent mystery.
+  var pill;
+  function status(text, ms) {
+    if (!pill) {
+      pill = document.createElement("div");
+      pill.setAttribute("role", "status");
+      pill.style.cssText = "position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));" +
+        "transform:translateX(-50%);z-index:2147483647;max-width:min(92vw,420px);padding:10px 16px;" +
+        "border-radius:999px;background:rgba(18,24,41,.94);color:#ece6d9;font:14px/1.35 -apple-system,system-ui,sans-serif;" +
+        "box-shadow:0 6px 24px rgba(0,0,0,.3);pointer-events:none;text-align:center;transition:opacity .3s";
+      document.body.appendChild(pill);
+    }
+    pill.textContent = text;
+    pill.style.opacity = "1";
+    clearTimeout(pill._t);
+    if (ms) pill._t = setTimeout(function () { pill.style.opacity = "0"; }, ms);
+  }
+
   // Ask the Mac for permission; you approve from a notification or the dashboard.
   var pairing = false;
   async function pair() {
     var c = cfg();
-    if (pairing || (c.asked && Date.now() - c.asked < 6 * 3600e3)) return;  // at most every 6 hours
+    if (pairing || (c.asked && Date.now() - c.asked < 10 * 60e3)) return;  // at most every 10 minutes
     pairing = true;
     try {
-      var r = await call("/pair", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ app: APP }) });
+      var r;
+      try {
+        r = await call("/pair", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ app: APP }) });
+      } catch (e) {
+        // Unreachable: away from home, Mac asleep, other Wi-Fi network, or certificate not trusted.
+        if (!c.warned || Date.now() - c.warned > 6 * 3600e3) {
+          c.warned = Date.now(); save(c);
+          status("Jarvis can't reach your Mac. Same Wi-Fi as the Mac, and its certificate trusted?", 7000);
+        }
+        return;
+      }
       if (!r.ok) return;
       c.asked = Date.now(); save(c);
+      status("Connecting to Jarvis: click Allow on your Mac.");
       var id = (await r.json()).request;
       for (var i = 0; i < 60; i++) {  // up to 5 minutes to click Allow
         await new Promise(function (res) { setTimeout(res, 5000); });
         var s = await (await call("/pair/" + id)).json();
-        if (s.token) { c.token = s.token; save(c); return push(); }
-        if (!s.waiting) return;
+        if (s.token) { c.token = s.token; save(c); status("Connected to Jarvis \u2713", 3500); return push(); }
+        if (!s.waiting) break;
       }
+      status("Not connected yet. Jarvis will ask your Mac again in 10 minutes.", 5000);
     } catch (e) {} finally { pairing = false; }
   }
 
