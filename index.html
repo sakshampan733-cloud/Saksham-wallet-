@@ -2,6 +2,75 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
+<!-- jarvis-apply:start (master copy lives in the jarvis repo: jarvis/hub_client.html) -->
+<script>
+/* Jarvis changes: what you asked Jarvis to do in this app (by voice or from its
+   dashboard) is written here, before the app reads its saved data, so the app finds it
+   as if you had done it yourself. The sync script at the end of the page fetches the
+   changes from your Mac and reloads; this part only applies them. */
+(function () {
+  var raw = localStorage.getItem("jarvis-apply");
+  if (!raw) return;
+  var ops = [], done = [], said = [];
+  try { ops = JSON.parse(raw) || []; } catch (e) {}
+  try { done = JSON.parse(localStorage.getItem("jarvis-applied")) || []; } catch (e) {}
+  function edit(key, fn) {
+    var s;
+    try { s = JSON.parse(localStorage.getItem(key)); } catch (e) {}
+    if (!s || typeof s !== "object") return false;
+    fn(s);
+    localStorage.setItem(key, JSON.stringify(s));
+    return true;
+  }
+  function basalDay(s, key) {
+    s.days = s.days || {};
+    return s.days[key] || (s.days[key] = { entries: [], water: [], weight: null, note: "", supps: [] });
+  }
+  var APPLY = {
+    // 11th hour: attendance marks ("p", "a", "c"; null clears one) and deadlines.
+    "11h.marks": function (o) { return edit("sem5plan", function (s) {
+      s.marks = s.marks || {};
+      for (var k in o.marks) { if (o.marks[k]) s.marks[k] = o.marks[k]; else delete s.marks[k]; }
+    }); },
+    "11h.deadline": function (o) { return edit("sem5plan", function (s) {
+      s.dls = s.dls || [];
+      if (!s.dls.some(function (d) { return d.id === o.dl.id; })) s.dls.push(o.dl);
+    }); },
+    "11h.undeadline": function (o) { return edit("sem5plan", function (s) {
+      s.dls = (s.dls || []).filter(function (d) { return d.id !== o.dlId; });
+    }); },
+    // Basal: foods and saved meals eaten, water, and taking an entry back out.
+    "basal.entries": function (o) { return edit("basal.v1", function (s) {
+      var d = basalDay(s, o.day);
+      d.entries = d.entries || [];
+      o.entries.forEach(function (e) { if (!d.entries.some(function (x) { return x.id === e.id; })) d.entries.push(e); });
+      var m = o.mealId && s.meals && s.meals[o.mealId];
+      if (m) { m.lastUsed = Date.now(); m.uses = (m.uses || 0) + 1; }
+      s.savedAt = Date.now();
+    }); },
+    "basal.water": function (o) { return edit("basal.v1", function (s) {
+      var d = basalDay(s, o.day);
+      d.water = d.water || [];
+      if (!d.water.some(function (w) { return w.ts === o.ts; })) d.water.push({ ts: o.ts, ml: o.ml });
+      s.savedAt = Date.now();
+    }); },
+    "basal.remove": function (o) { return edit("basal.v1", function (s) {
+      var d = basalDay(s, o.day);
+      d.entries = (d.entries || []).filter(function (e) { return (o.ids || []).indexOf(e.id) < 0; });
+      if (o.waterTs) d.water = (d.water || []).filter(function (w) { return w.ts !== o.waterTs; });
+      s.savedAt = Date.now();
+    }); }
+  };
+  ops.forEach(function (o) {
+    if (done.indexOf(o.id) >= 0 || !APPLY[o.kind]) return;
+    try { if (APPLY[o.kind](o)) { done.push(o.id); if (o.label) said.push(o.label); } } catch (e) {}
+  });
+  localStorage.setItem("jarvis-applied", JSON.stringify(done.slice(-200)));
+  if (said.length) localStorage.setItem("jarvis-said", said.slice(0, 2).join(" \u00b7 ") + (said.length > 2 ? " and " + (said.length - 2) + " more" : ""));
+  localStorage.removeItem("jarvis-apply");
+})();
+</script>
+<!-- jarvis-apply:end -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -4950,14 +5019,19 @@ function showPinGate(){
 <!-- jarvis-sync:start (master copy lives in the jarvis repo: jarvis/hub_client.html) -->
 <script>
 /* Jarvis sync: sends a copy of this app's saved data to Jarvis on your Mac, over home
-   Wi-Fi only. Does nothing until you approve the app on your Mac, never blocks the app,
-   and fails silently when the Mac isn't reachable (away from home, Mac asleep). */
+   Wi-Fi only, and collects changes you asked Jarvis to make here. Does nothing until
+   you approve the app on your Mac, never blocks the app, and fails silently when the
+   Mac isn't reachable (away from home, Mac asleep). */
 (function () {
   var APP = "saksham-wallet";
   var HUB = "https://MacBook-Air-2.local:8766";
   var KEY = "jarvis-sync";
-  // IndexedDB stores to copy too, for apps that keep their data there: {database: [stores]}
+  // IndexedDB stores to copy too, for apps that keep their data there: {database: [stores]}.
+  // The first store listed is the app's main data.
   var IDB = {"ledger-desk": ["entries", "meta"]};
+  // Which saved keys are this app's own. Apps on the same site share storage, so without
+  // this each would also send its neighbours' data. null means "everything".
+  var OWN = (function (p) { return p ? new RegExp(p) : null; })("^(ledger-|wallet-)");
   var setItem = Storage.prototype.setItem, removeItem = Storage.prototype.removeItem;
 
   function cfg() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
@@ -4966,13 +5040,18 @@ function showPinGate(){
     var ctrl = new AbortController(), t = setTimeout(function () { ctrl.abort(); }, 5000);
     return fetch(HUB + path, Object.assign({ signal: ctrl.signal }, opts)).finally(function () { clearTimeout(t); });
   }
-  // Sign-in tokens and secrets stay on the phone; Jarvis has no use for them.
+  // This browser's name for Jarvis, so changes go to the device where you actually use
+  // the app (the same app may also be open on another device).
+  (function () { var c = cfg(); if (!c.device) { c.device = Math.random().toString(36).slice(2, 10); save(c); } })();
+  function changedNow() { var c = cfg(); c.changed = Date.now(); save(c); }
+
+  // Sign-in tokens, PINs and secrets stay on the phone; Jarvis has no use for them.
   var PRIVATE = /token|secret|password|credential/i;
   function snapshot() {
     var data = {};
     for (var i = 0; i < localStorage.length; i++) {
       var k = localStorage.key(i);
-      if (k !== KEY && !PRIVATE.test(k)) data[k] = localStorage.getItem(k);
+      if (k !== KEY && !/^jarvis-/.test(k) && !PRIVATE.test(k) && (!OWN || OWN.test(k))) data[k] = localStorage.getItem(k);
     }
     return data;
   }
@@ -4989,8 +5068,27 @@ function showPinGate(){
         d.onversionchange = function () { d.close(); };
         if (!d.objectStoreNames.contains(store)) { d.close(); return res(null); }
         var g = d.transaction(store, "readonly").objectStore(store).getAll();
-        g.onsuccess = function () { d.close(); res(g.result); };
+        g.onsuccess = function () {
+          d.close();
+          res((g.result || []).filter(function (r) { return !(r && typeof r.k === "string" && (PRIVATE.test(r.k) || /^pin/i.test(r.k))); }));
+        };
         g.onerror = function () { d.close(); res(null); };
+      };
+    });
+  }
+  function writeStore(o) {
+    return new Promise(function (res) {
+      var rq;
+      try { rq = indexedDB.open(o.db); } catch (e) { return res(false); }
+      rq.onerror = function () { res(false); };
+      rq.onsuccess = function () {
+        var d = rq.result;
+        d.onversionchange = function () { d.close(); };
+        if (!d.objectStoreNames.contains(o.store)) { d.close(); return res(false); }
+        var tx = d.transaction(o.store, "readwrite"), st = tx.objectStore(o.store);
+        if (o.kind === "idb.put") st.put(o.value); else st.delete(o.key);
+        tx.oncomplete = function () { d.close(); res(true); };
+        tx.onerror = tx.onabort = function () { d.close(); res(false); };
       };
     });
   }
@@ -5010,13 +5108,55 @@ function showPinGate(){
       var r = await call("/sync/" + APP, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Jarvis-Token": c.token },
-        body: JSON.stringify({ app: APP, at: new Date().toISOString(), data: snapshot(), idb: await idbSnapshot() }),
+        body: JSON.stringify({ app: APP, at: new Date().toISOString(), device: c.device, changed: c.changed || 0,
+                               data: snapshot(), idb: await idbSnapshot() }),
       });
       if (r.status === 403) { delete c.token; save(c); }  // un-paired on the Mac: ask again later
     } catch (e) {}
   }
 
-  // A small status pill, shown only while connecting, so setup isn't a silent mystery.
+  // Changes you asked Jarvis for wait on the Mac until this app is open. IndexedDB ones
+  // are written straight away; saved-data ones are handed to the script at the top of
+  // the page, which applies them after a reload, before the app reads its data.
+  var collecting = false, touched = 0;
+  async function collect() {
+    var c = cfg();
+    if (!c.token || collecting) return;
+    collecting = true;
+    try {
+      var r = await call("/inbox/" + APP + "?device=" + c.device, { headers: { "X-Jarvis-Token": c.token } });
+      if (!r.ok) return;
+      var ops = (await r.json()).ops || [];
+      if (!ops.length) return;
+      if (Date.now() - touched < 8000) return;  // you're mid-tap: try again on the next check
+      var done = [], handled = [], later = [], said = [];
+      try { done = JSON.parse(localStorage.getItem("jarvis-applied")) || []; } catch (e) {}
+      for (var i = 0; i < ops.length; i++) {
+        var o = ops[i];
+        if (done.indexOf(o.id) >= 0) { handled.push(o.id); continue; }  // applied before; just confirm
+        if (o.kind === "idb.put" || o.kind === "idb.delete") {
+          if (await writeStore(o)) { handled.push(o.id); done.push(o.id); if (o.label) said.push(o.label); }
+        } else { handled.push(o.id); later.push(o); }
+      }
+      var fresh = later.length || said.length;
+      if (later.length) {
+        var waiting = [];
+        try { waiting = JSON.parse(localStorage.getItem("jarvis-apply")) || []; } catch (e) {}
+        setItem.call(localStorage, "jarvis-apply", JSON.stringify(waiting.concat(later)));
+      }
+      setItem.call(localStorage, "jarvis-applied", JSON.stringify(done.slice(-200)));
+      if (said.length) setItem.call(localStorage, "jarvis-said", said.slice(0, 2).join(" \u00b7 ") + (said.length > 2 ? " and " + (said.length - 2) + " more" : ""));
+      try {
+        await call("/inbox/" + APP + "/done", {
+          method: "POST", headers: { "Content-Type": "application/json", "X-Jarvis-Token": c.token },
+          body: JSON.stringify({ ids: handled }),
+        });
+      } catch (e) {}
+      if (fresh) location.reload();
+    } catch (e) {} finally { collecting = false; }
+  }
+
+  // A small status pill, shown only while connecting or after Jarvis made a change.
   var pill;
   function status(text, ms) {
     if (!pill) {
@@ -5068,19 +5208,42 @@ function showPinGate(){
 
   var timer;
   function soon() { clearTimeout(timer); timer = setTimeout(push, 4000); }
-  Storage.prototype.setItem = function (k, v) { setItem.call(this, k, v); if (this === localStorage && k !== KEY) soon(); };
-  Storage.prototype.removeItem = function (k) { removeItem.call(this, k); if (this === localStorage && k !== KEY) soon(); };
+  // Writes to the app's own data mark this device as the one you use it on.
+  Storage.prototype.setItem = function (k, v) {
+    var mine = this === localStorage && k !== KEY && !/^jarvis-/.test(k);
+    var differs = mine && (!OWN || OWN.test(k)) && Storage.prototype.getItem.call(this, k) !== String(v);
+    setItem.call(this, k, v);
+    if (differs) changedNow();
+    if (mine) soon();
+  };
+  Storage.prototype.removeItem = function (k) {
+    removeItem.call(this, k);
+    if (this === localStorage && k !== KEY && !/^jarvis-/.test(k)) soon();
+  };
   if (window.IDBObjectStore && Object.keys(IDB).length) {
     ["put", "add", "delete", "clear"].forEach(function (method) {
       var original = IDBObjectStore.prototype[method];
       IDBObjectStore.prototype[method] = function () {
         var result = original.apply(this, arguments);
-        try { if (IDB[this.transaction.db.name]) soon(); } catch (e) {}
+        try {
+          var stores = IDB[this.transaction.db.name];
+          if (stores) { if (stores[0] === this.name) changedNow(); soon(); }
+        } catch (e) {}
         return result;
       };
     });
   }
-  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") soon(); });
+  ["pointerdown", "keydown"].forEach(function (t) { document.addEventListener(t, function () { touched = Date.now(); }, true); });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { collect(); soon(); } });
+  setInterval(function () { if (document.visibilityState === "visible") collect(); }, 20000);
+
+  var said = localStorage.getItem("jarvis-said");
+  if (said) {
+    removeItem.call(localStorage, "jarvis-said");
+    changedNow();
+    status("Jarvis: " + said, 4500);
+  }
+  collect();
   soon();
 })();
 </script>
