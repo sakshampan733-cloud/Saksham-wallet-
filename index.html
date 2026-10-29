@@ -36,6 +36,13 @@
       s.dls = s.dls || [];
       if (!s.dls.some(function (d) { return d.id === o.dl.id; })) s.dls.push(o.dl);
     }); },
+    "11h.dldone": function (o) { return edit("sem5plan", function (s) {
+      (s.dls || []).forEach(function (d) {
+        if (d.id !== o.dlId) return;
+        d.done = !!o.done;
+        if (o.done) d.doneAt = o.at; else delete d.doneAt;
+      });
+    }); },
     "11h.undeadline": function (o) { return edit("sem5plan", function (s) {
       s.dls = (s.dls || []).filter(function (d) { return d.id !== o.dlId; });
     }); },
@@ -52,6 +59,29 @@
       var d = basalDay(s, o.day);
       d.water = d.water || [];
       if (!d.water.some(function (w) { return w.ts === o.ts; })) d.water.push({ ts: o.ts, ml: o.ml });
+      s.savedAt = Date.now();
+    }); },
+    // Basal: a workout (one session per day, as the app keeps them), optionally with a new
+    // workout type; remove takes the day's session back out.
+    "basal.train": function (o) { return edit("basal.v1", function (s) {
+      s.train = s.train || {};
+      s.train.sessions = s.train.sessions || {};
+      if (o.newType && s.train.types && s.train.types.length && !s.train.types.some(function (x) { return x.id === o.newType.id; }))
+        s.train.types.push(o.newType);
+      if (o.remove) delete s.train.sessions[o.day];
+      else s.train.sessions[o.day] = Object.assign({}, s.train.sessions[o.day] || {}, o.session, { date: o.day });
+      s.savedAt = Date.now();
+    }); },
+    // Basal: a saved meal made by Jarvis, or one taken back out.
+    "basal.meal": function (o) { return edit("basal.v1", function (s) {
+      s.meals = s.meals || {};
+      if (o.remove) delete s.meals[o.remove]; else s.meals[o.meal.id] = o.meal;
+      s.savedAt = Date.now();
+    }); },
+    // Basal: a weigh-in (null clears it).
+    "basal.weight": function (o) { return edit("basal.v1", function (s) {
+      var d = basalDay(s, o.day);
+      if (o.kg == null) { delete d.weight; delete d.weighHour; } else { d.weight = o.kg; d.weighHour = o.hour; }
       s.savedAt = Date.now();
     }); },
     "basal.remove": function (o) { return edit("basal.v1", function (s) {
