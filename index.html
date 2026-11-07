@@ -5054,7 +5054,10 @@ function showPinGate(){
    Mac isn't reachable (away from home, Mac asleep). */
 (function () {
   var APP = "saksham-wallet";
-  var HUB = "https://MacBook-Air-2.local:8766";
+  // Tailscale first (works anywhere while Tailscale is on), then home Wi-Fi. The one that
+  // answered last is tried first next time.
+  var HUBS = ["https://sakshams-mac-studio.tailae7f20.ts.net:8766", "https://MacBook-Air-2.local:8766"];
+  var hubAt = 0;
   var KEY = "jarvis-sync";
   // IndexedDB stores to copy too, for apps that keep their data there: {database: [stores]}.
   // The first store listed is the app's main data.
@@ -5066,9 +5069,17 @@ function showPinGate(){
 
   function cfg() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
   function save(c) { setItem.call(localStorage, KEY, JSON.stringify(c)); }
-  function call(path, opts) {
+  function callOne(base, path, opts) {
     var ctrl = new AbortController(), t = setTimeout(function () { ctrl.abort(); }, 5000);
-    return fetch(HUB + path, Object.assign({ signal: ctrl.signal }, opts)).finally(function () { clearTimeout(t); });
+    return fetch(base + path, Object.assign({ signal: ctrl.signal }, opts)).finally(function () { clearTimeout(t); });
+  }
+  async function call(path, opts) {
+    var err;
+    for (var i = 0; i < HUBS.length; i++) {
+      var at = (hubAt + i) % HUBS.length;
+      try { var r = await callOne(HUBS[at], path, opts); hubAt = at; return r; } catch (e) { err = e; }
+    }
+    throw err;
   }
   // This browser's name for Jarvis, so changes go to the device where you actually use
   // the app (the same app may also be open on another device).
