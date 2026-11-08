@@ -22,6 +22,32 @@
     localStorage.setItem(key, JSON.stringify(s));
     return true;
   }
+  // A general change to an app's saved data, so Jarvis can do anything the app stores
+  // without a new instruction each time. Paths are lists of keys/indexes; items in lists
+  // are found by matching fields (usually their id).
+  function at(s, path, make) {
+    var o = s;
+    for (var i = 0; i < path.length; i++) {
+      if (o[path[i]] == null) { if (!make) return undefined; o[path[i]] = typeof path[i + 1] === "number" ? [] : {}; }
+      o = o[path[i]];
+    }
+    return o;
+  }
+  function matches(item, m) { for (var k in m) if (!item || item[k] !== m[k]) return false; return true; }
+  function change(s, c) {
+    var path = c.path || [], head = path.slice(0, -1), last = path[path.length - 1];
+    if (c.op === "set") { at(s, head, true)[last] = c.value; }
+    else if (c.op === "del") { var o = at(s, head, false); if (o) { if (Array.isArray(o)) o.splice(last, 1); else delete o[last]; } }
+    else if (c.op === "merge") { Object.assign(at(s, path, true), c.value); }
+    else if (c.op === "push") {
+      var parent = at(s, head, true);
+      if (!Array.isArray(parent[last])) parent[last] = [];
+      var a = parent[last];
+      if (Array.isArray(a) && !(c.value && c.value.id != null && a.some(function (x) { return x && x.id === c.value.id; }))) a.push(c.value);
+    }
+    else if (c.op === "pull") { var b = at(s, path, false); if (Array.isArray(b)) at(s, head, true)[last] = b.filter(function (x) { return !matches(x, c.match); }); }
+    else if (c.op === "patch") { (at(s, path, false) || []).forEach(function (x) { if (matches(x, c.match)) Object.assign(x, c.value); }); }
+  }
   function basalDay(s, key) {
     s.days = s.days || {};
     return s.days[key] || (s.days[key] = { entries: [], water: [], weight: null, note: "", supps: [] });
@@ -77,6 +103,11 @@
       s.meals = s.meals || {};
       if (o.remove) delete s.meals[o.remove]; else s.meals[o.meal.id] = o.meal;
       s.savedAt = Date.now();
+    }); },
+    // Any app kept in saved data (11th hour, Basal, Paperweight, Teak): a list of changes.
+    "ls.ops": function (o) { return edit(o.key, function (s) {
+      (o.ops || []).forEach(function (c) { change(s, c); });
+      if (o.touch) s[o.touch] = Date.now();
     }); },
     // Basal: a new food in the library (as if built by hand in the app), or one taken back out.
     "basal.food": function (o) { return edit("basal.v1", function (s) {
